@@ -1,4 +1,4 @@
-package com.sg.nusiss.auth.security;
+package com.sg.nusiss.common.security;
 
 
 import com.sg.nusiss.common.domain.ErrorCode;
