@@ -1,0 +1,81 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: gamevault-shopping
+
+  # 数据源配置
+  datasource:
+    url: jdbc:postgresql://localhost:12000/gamevault_shopping
+    username: gamevault_user
+    password: gamevault_pass
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      connection-timeout: 30000
+
+  # JPA 配置
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  # 文件上传配置
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 100MB
+      enabled: true
+
+  # Nacos 服务注册
+  cloud:
+    nacos:
+      discovery:
+        server-addr: localhost:8848
+        namespace: dev
+        group: GAMEVAULT_GROUP
+      config:
+        enabled: false
+    compatibility-verifier:
+      enabled: false
+
+  # OAuth2 资源服务器 - JWT 验证
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8081
+          jwk-set-uri: http://localhost:8081/.well-known/jwks.json
+
+# 激活码库存配置
+activation:
+  stock:
+    target: 30
+
+# 文件上传路径
+app:
+  upload:
+    path: uploads
+
+# Actuator 健康检查
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+# 日志配置
+logging:
+  level:
+    com.sg.nusiss.shopping: DEBUG
+    org.springframework.security: DEBUG
+    org.springframework.cloud: DEBUG

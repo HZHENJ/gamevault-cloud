@@ -25,7 +25,7 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          public-key-location: file:secrets/keys/rsa-public.pem
+          public-key-location: classpath:certs/rsa-public.pem
 
   datasource:
     url: jdbc:postgresql://localhost:12000/gamevault_social
