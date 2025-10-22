@@ -36,6 +36,22 @@ services:
     networks:
       - gamevault
 
+
+  # === Redis ===
+  redis:
+    image: redis:alpine
+    container_name: gamevault_redis
+    ports:
+      - "12003:6379"
+    volumes:
+      - ./docker/redis/redis.conf:/usr/local/etc/redis/redis.conf
+      - ./docker/redis/data/:/data
+    command: redis-server /usr/local/etc/redis/redis.conf
+    restart: always
+    networks:
+      - gamevault
+
+
 networks:
   gamevault:
     driver: bridge
