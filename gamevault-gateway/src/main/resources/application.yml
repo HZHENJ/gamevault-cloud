@@ -1,0 +1,63 @@
+server:
+  port: 8080  # 前端统一入口
+
+spring:
+  application:
+    name: gamevault-gateway
+
+  cloud:
+    nacos:
+      discovery:
+        server-addr: localhost:8848
+        namespace: dev
+        group: GAMEVAULT_GROUP
+      config:
+        enabled: false
+        import-check:
+          enabled: false
+
+    gateway:
+      # 路由配置 - 保持前端接口完全不变
+      routes:
+        # ==================== 认证服务 ====================
+        - id: auth-service
+          uri: lb://gamevault-auth  # lb = LoadBalancer，从 Nacos 获取
+          predicates:
+            - Path=/api/auth/**,/.well-known/jwks.json
+          filters:
+            - StripPrefix=0  # 不去除路径前缀，完整转发
+
+      # 全局跨域配置
+      globalcors:
+        corsConfigurations:
+          '[/**]':
+            allowedOriginPatterns:
+              - "http://localhost:3000"
+              - "http://127.0.0.1:3000"
+              - "http://localhost:3001"
+              - "http://127.0.0.1:3001"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+              - PATCH
+            allowedHeaders: "*"
+            allowCredentials: true
+            maxAge: 3600
+
+# Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,gateway,routes
+  endpoint:
+    health:
+      show-details: always
+
+# 日志
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG
