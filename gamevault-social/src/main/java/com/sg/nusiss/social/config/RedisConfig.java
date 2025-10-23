@@ -1,4 +1,4 @@
-package com.sg.nusiss.common.config;
+package com.sg.nusiss.social.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
