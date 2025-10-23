@@ -36,6 +36,13 @@ spring:
           filters:
             - StripPrefix=0
 
+        - id: developer-service
+          uri: lb://gamevault-developer
+          predicates:
+            - Path=/api/developer/**
+          filters:
+            - StripPrefix=0
+
         # ==================== WebSocket 服务（独立配置，优先匹配）====================
         - id: social-websocket
           uri: lb:ws://gamevault-social
