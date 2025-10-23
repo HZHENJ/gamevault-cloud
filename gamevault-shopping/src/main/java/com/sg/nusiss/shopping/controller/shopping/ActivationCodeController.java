@@ -24,20 +24,26 @@ public class ActivationCodeController {
 
     /** 查看指定游戏的激活码库存情况 */
     @GetMapping("/admin/games/{gameId}/activation-codes/stats")
-    public ResponseEntity<Map<String, Long>> getStockStats(@PathVariable Long gameId) {
+    public ResponseEntity<Map<String, Long>> getStockStats(
+            @PathVariable(value = "gameId") Long gameId
+    ) {
         return ResponseEntity.ok(activationService.getStockStats(gameId));
     }
 
     /** 手动补充激活码（补足到目标库存） */
     @PostMapping("/admin/games/{gameId}/activation-codes/replenish")
-    public ResponseEntity<String> replenish(@PathVariable Long gameId) {
+    public ResponseEntity<String> replenish(
+            @PathVariable(value = "gameId") Long gameId
+    ) {
         activationService.replenishToTarget(gameId);
         return ResponseEntity.ok("已补足激活码库存至目标数量");
     }
 
     /** 初始化激活码（新游戏上架后） */
     @PostMapping("/admin/games/{gameId}/activation-codes/init")
-    public ResponseEntity<String> initCodes(@PathVariable Long gameId) {
+    public ResponseEntity<String> initCodes(
+            @PathVariable(value = "gameId") Long gameId
+    ) {
         activationService.generateInitialCodes(gameId);
         return ResponseEntity.ok("已初始化激活码库存至目标数量");
     }
@@ -55,7 +61,7 @@ public class ActivationCodeController {
     @GetMapping("/user/activation-codes/{gameId}")
     public ResponseEntity<List<PurchasedGameActivationCode>> getUserCodesByGame(
             @AuthenticationPrincipal Jwt jwt,
-            @PathVariable Long gameId) {
+            @PathVariable(value = "gameId") Long gameId) {
 
         Long userId = ((Number) jwt.getClaims().get("uid")).longValue();
 

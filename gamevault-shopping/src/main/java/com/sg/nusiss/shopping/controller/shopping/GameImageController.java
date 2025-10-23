@@ -20,7 +20,6 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/games")
-@CrossOrigin(origins = "*")
 public class GameImageController {
 
     private final FileUploadService fileUploadService;
@@ -39,9 +38,8 @@ public class GameImageController {
      */
     @PostMapping("/{gameId}/image")
     public ResponseEntity<Map<String, Object>> uploadGameImage(
-            @PathVariable Long gameId,
-            @RequestParam("file") MultipartFile file) {
-        
+            @PathVariable(value = "gameId") Long gameId,
+            @RequestParam(value = "file") MultipartFile file) {
         try {
             // 检查游戏是否存在
             if (!gameService.findById(gameId).isPresent()) {
@@ -82,7 +80,7 @@ public class GameImageController {
      * @return 删除结果
      */
     @DeleteMapping("/{gameId}/image")
-    public ResponseEntity<Map<String, Object>> deleteGameImage(@PathVariable Long gameId) {
+    public ResponseEntity<Map<String, Object>> deleteGameImage(@PathVariable(value = "gameId") Long gameId) {
         try {
             // 检查游戏是否存在
             GameDTO game = gameService.findById(gameId)

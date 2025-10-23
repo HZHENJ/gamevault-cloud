@@ -5,6 +5,33 @@ spring:
   application:
     name: gamevault-shopping
 
+  cloud:
+    compatibility-verifier:
+      enabled: false
+    nacos:
+      discovery:
+        server-addr: localhost:8848
+        namespace: dev
+        group: GAMEVAULT_GROUP
+      config:
+        enabled: false
+        import-check:
+          enabled: false
+
+#  security:
+#    oauth2:
+#      resourceserver:
+#        jwt:
+#          public-key-location: classpath:certs/rsa-public.pem
+
+  # OAuth2 资源服务器 - JWT 验证
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8081
+          jwk-set-uri: http://localhost:8081/.well-known/jwks.json
+
   # 数据源配置
   datasource:
     url: jdbc:postgresql://localhost:12000/gamevault_shopping
@@ -33,49 +60,31 @@ spring:
       max-request-size: 100MB
       enabled: true
 
-  # Nacos 服务注册
-  cloud:
-    nacos:
-      discovery:
-        server-addr: localhost:8848
-        namespace: dev
-        group: GAMEVAULT_GROUP
-      config:
-        enabled: false
-    compatibility-verifier:
-      enabled: false
-
-  # OAuth2 资源服务器 - JWT 验证
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          issuer-uri: http://localhost:8081
-          jwk-set-uri: http://localhost:8081/.well-known/jwks.json
-
 # 激活码库存配置
 activation:
   stock:
     target: 30
 
-# 文件上传路径
+# 应用配置
 app:
   upload:
     path: uploads
+    max-file-size: 100MB
+    max-request-size: 100MB
+  pagination:
+    default-page-size: 20
+    max-page-size: 100
 
-# Actuator 健康检查
+# Actuator 配置
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics
-  endpoint:
-    health:
-      show-details: always
+        include: health,info
 
 # 日志配置
 logging:
   level:
-    com.sg.nusiss.shopping: DEBUG
-    org.springframework.security: DEBUG
-    org.springframework.cloud: DEBUG
+    com.sg.nusiss.social: DEBUG
+    org.springframework.web: INFO
+    org.springframework.messaging: DEBUG

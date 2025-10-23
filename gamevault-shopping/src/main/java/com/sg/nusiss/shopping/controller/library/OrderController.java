@@ -18,7 +18,6 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * ✅ Order Controller
  * 统一使用 Spring Security 的 Jwt 注入方式，与队友风格保持一致
  */
 @RestController
@@ -31,10 +30,9 @@ public class OrderController {
     private final OrderItemRepository orderItemRepo;
     private final PurchasedGameActivationCodeRepository pacRepo;
 
-    /** 🧾 1) 创建订单（结账） */
     @PostMapping("/checkout")
     public ResponseEntity<OrderDTO> checkout(@AuthenticationPrincipal Jwt jwt,
-                                             @RequestParam PaymentMethod method) {
+                                             @RequestParam(value = "method") PaymentMethod method) {
 
         Long userId = ((Number) jwt.getClaims().get("uid")).longValue();
         var cart = cartService.getCartEntity(userId);
@@ -44,16 +42,14 @@ public class OrderController {
         return ResponseEntity.ok(dto);
     }
 
-    /** 📦 2) 查询当前用户所有订单 */
     @GetMapping
     public ResponseEntity<List<OrderDTO>> getOrders(@AuthenticationPrincipal Jwt jwt) {
         Long userId = ((Number) jwt.getClaims().get("uid")).longValue();
         return ResponseEntity.ok(orderService.findByUserId(userId));
     }
 
-    /** 🔍 3) 查询单个订单详情（含激活码） */
     @GetMapping("/{orderId}")
-    public ResponseEntity<Map<String, Object>> getOrderDetail(@PathVariable Long orderId,
+    public ResponseEntity<Map<String, Object>> getOrderDetail(@PathVariable(value = "orderId") Long orderId,
                                                               @AuthenticationPrincipal Jwt jwt) {
         Long uid = ((Number) jwt.getClaims().get("uid")).longValue();
 
@@ -94,7 +90,6 @@ public class OrderController {
         return ResponseEntity.ok(result);
     }
 
-    /** 📊 4) 查询订单摘要（分组汇总） */
     @GetMapping("/summary")
     public ResponseEntity<Map<String, Object>> getSummary(@AuthenticationPrincipal Jwt jwt) {
         Long uid = ((Number) jwt.getClaims().get("uid")).longValue();
@@ -117,17 +112,15 @@ public class OrderController {
         return ResponseEntity.ok(Map.of("items", list));
     }
 
-    /** 💳 5) 支付成功 */
     @PostMapping("/{orderId}/pay")
-    public ResponseEntity<OrderDTO> pay(@PathVariable Long orderId,
+    public ResponseEntity<OrderDTO> pay(@PathVariable(value = "orderId") Long orderId,
                                         @AuthenticationPrincipal Jwt jwt) {
         Long userId = ((Number) jwt.getClaims().get("uid")).longValue();
         return ResponseEntity.ok(orderService.captureAndFulfill(orderId, userId));
     }
 
-    /** ❌ 6) 支付失败 */
     @PostMapping("/{orderId}/fail")
-    public ResponseEntity<Void> fail(@PathVariable Long orderId,
+    public ResponseEntity<Void> fail(@PathVariable(value = "orderId") Long orderId,
                                      @AuthenticationPrincipal Jwt jwt) {
         Long userId = ((Number) jwt.getClaims().get("uid")).longValue();
         orderService.markFailed(orderId, userId);

@@ -43,7 +43,7 @@ public class CartController {
     /** 🔄 更新购物车商品数量 */
     @PutMapping("/items/{gameId}")
     public ResponseEntity<CartDTO> updateQuantity(@AuthenticationPrincipal Jwt jwt,
-                                                  @PathVariable Long gameId,
+                                                  @PathVariable(value = "gameId") Long gameId,
                                                   @RequestParam(name = "quantity") int quantity) {
         Long userId = ((Number) jwt.getClaims().get("uid")).longValue();
         return ResponseEntity.ok(cartService.updateQuantity(userId, gameId, quantity));
@@ -52,7 +52,7 @@ public class CartController {
     /** ❌ 移除购物车内的商品 */
     @DeleteMapping("/items/{gameId}")
     public ResponseEntity<CartDTO> removeFromCart(@AuthenticationPrincipal Jwt jwt,
-                                                  @PathVariable Long gameId) {
+                                                  @PathVariable(value = "gameId") Long gameId) {
         Long userId = ((Number) jwt.getClaims().get("uid")).longValue();
         return ResponseEntity.ok(cartService.removeGame(userId, gameId));
     }
@@ -78,7 +78,7 @@ public class CartController {
     /** 💳 结账 */
     @PostMapping("/checkout")
     public ResponseEntity<OrderDTO> checkout(@AuthenticationPrincipal Jwt jwt,
-                                             @RequestParam PaymentMethod method) {
+                                             @RequestParam(value = "method") PaymentMethod method) {
         Long userId = ((Number) jwt.getClaims().get("uid")).longValue();
         return ResponseEntity.ok(cartService.checkout(userId, method));
     }
