@@ -89,7 +89,9 @@ public class ConversationController {
      * Get all users inside conversation
      */
     @GetMapping("/{conversationId}/members")
-    public BaseResponse<List<MemberResponse>> getMembers(@PathVariable Long conversationId) {
+    public BaseResponse<List<MemberResponse>> getMembers(
+            @PathVariable(value = "conversationId") Long conversationId
+    ) {
         // 从 JWT 获取当前用户ID
         Long currentUserId = SecurityUtils.getCurrentUserId();
 
@@ -104,7 +106,7 @@ public class ConversationController {
      */
     @PostMapping("/{conversationId}/members/add")
     public BaseResponse<Void> addMembers(
-            @PathVariable Long conversationId,
+            @PathVariable(value = "conversationId") Long conversationId,
             @RequestBody AddMembersRequest request) {
 
         Long currentUserId = SecurityUtils.getCurrentUserId();

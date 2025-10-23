@@ -45,7 +45,7 @@ public class MessageController {
      */
     @GetMapping("/{conversationId}")
     public BaseResponse<List<MessageResponse>> getMessages(
-            @PathVariable Long conversationId,
+            @PathVariable(value = "conversationId") Long conversationId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size) {
 
@@ -69,7 +69,7 @@ public class MessageController {
      */
     @GetMapping("/private/{friendId}")
     public BaseResponse<List<MessageResponse>> getPrivateMessages(
-            @PathVariable Long friendId,
+            @PathVariable(value = "friendId") Long friendId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size) {
 

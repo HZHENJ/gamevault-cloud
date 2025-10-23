@@ -39,7 +39,7 @@ public class FileManagementController {
      * 获取文件详情
      */
     @GetMapping("/{fileId}")
-    public BaseResponse<FileInfoResponse> getFileInfo(@PathVariable String fileId) {
+    public BaseResponse<FileInfoResponse> getFileInfo(@PathVariable(value = "fileId") String fileId) {
 
         // 从 JWT 获取当前用户ID
         Long userId = SecurityUtils.getCurrentUserId();
@@ -85,10 +85,10 @@ public class FileManagementController {
      */
     @GetMapping("/list/{bizType}/{bizId}")
     public BaseResponse<Page<FileInfoResponse>> listFilesByBiz(
-            @PathVariable String bizType,
-            @PathVariable String bizId,
-            @RequestParam(defaultValue = "0") Integer page,
-            @RequestParam(defaultValue = "20") Integer size) {
+            @PathVariable(value = "bizType") String bizType,
+            @PathVariable(value = "bizId") String bizId,
+            @RequestParam(value = "page", defaultValue = "0") Integer page,
+            @RequestParam(value = "size", defaultValue = "20") Integer size) {
 
         // 从 JWT 获取当前用户ID
         Long userId = SecurityUtils.getCurrentUserId();
@@ -129,7 +129,7 @@ public class FileManagementController {
     @PostMapping("/delete/batch")
     public BaseResponse<Void> batchDeleteFiles(
             @RequestBody List<String> fileIds,
-            @RequestParam(defaultValue = "false") Boolean physicalDelete) {
+            @RequestParam(value = "physicalDelete", defaultValue = "false") Boolean physicalDelete)  {
 
         // 从 JWT 获取当前用户ID
         Long userId = SecurityUtils.getCurrentUserId();

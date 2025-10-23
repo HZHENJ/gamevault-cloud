@@ -111,7 +111,9 @@ public class FileUploadController {
      * 查询上传任务状态
      */
     @GetMapping("/chunk/status/{taskId}")
-    public BaseResponse<UploadTaskResponse> getTaskStatus(@PathVariable String taskId) {
+    public BaseResponse<UploadTaskResponse> getTaskStatus(
+            @PathVariable(value = "taskId") String taskId
+    ) {
 
         // 从 JWT 获取当前用户ID
         Long userId = SecurityUtils.getCurrentUserId();
@@ -124,7 +126,9 @@ public class FileUploadController {
      * 取消上传任务
      */
     @DeleteMapping("/chunk/cancel/{taskId}")
-    public BaseResponse<Void> cancelUploadTask(@PathVariable String taskId) {
+    public BaseResponse<Void> cancelUploadTask(
+            @PathVariable(value = "taskId") String taskId
+    ) {
 
         // 从 JWT 获取当前用户ID
         Long userId = SecurityUtils.getCurrentUserId();

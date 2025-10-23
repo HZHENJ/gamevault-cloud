@@ -32,7 +32,9 @@ public class FriendController {
      * 搜索用户
      */
     @GetMapping("/search")
-    public BaseResponse<List<UserSearchResponse>> searchUsers(@RequestParam String keyword) {
+    public BaseResponse<List<UserSearchResponse>> searchUsers(
+            @RequestParam(value = "keyword", required = true) String keyword
+    ) {
         Long currentUserId = SecurityUtils.getCurrentUserId();
         List<UserSearchResponse> users = friendService.searchUsers(keyword, currentUserId);
         return ResultUtils.success(users);
@@ -92,7 +94,7 @@ public class FriendController {
      * 删除好友
      */
     @DeleteMapping("/{friendId}")
-    public BaseResponse<Void> deleteFriend(@PathVariable Long friendId) {
+    public BaseResponse<Void> deleteFriend(@PathVariable(value = "friendId") Long friendId) {
         Long currentUserId = SecurityUtils.getCurrentUserId();
         friendService.deleteFriend(currentUserId, friendId);
         return ResultUtils.success(null);
