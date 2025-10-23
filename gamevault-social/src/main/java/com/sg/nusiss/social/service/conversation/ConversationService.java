@@ -71,9 +71,10 @@ public class ConversationService {
         // 将群主加入成员表
         Member ownerMember = new Member();
         ownerMember.setConversation(conversation);
-        ownerMember.setUserId(ownerMember.getUserId());
+        ownerMember.setUserId(ownerId);
         ownerMember.setRole("owner");
         ownerMember.setJoinedAt(LocalDateTime.now());
+        ownerMember.setIsActive(true);
         memberRepository.save(ownerMember);
 
         log.info("群聊创建成功 - ID: {}, 群主: {}", conversation.getId(), ownerId);
