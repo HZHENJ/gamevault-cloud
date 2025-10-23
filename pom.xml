@@ -19,6 +19,7 @@
         <module>gamevault-gateway</module>
         <module>gamevault-social</module>
         <module>gamevault-shopping</module>
+        <module>gamevault-developer</module>
     </modules>
 
     <!-- 版本管理 -->
