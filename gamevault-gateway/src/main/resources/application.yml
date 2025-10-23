@@ -1,5 +1,5 @@
 server:
-  port: 8080  # 前端统一入口
+  port: 8080 # 前端统一入口
 
 spring:
   application:
@@ -13,24 +13,50 @@ spring:
         group: GAMEVAULT_GROUP
       config:
         enabled: false
-        import-check:
-          enabled: false
+
+    import-check:
+      enabled: false
 
     gateway:
       # 路由配置 - 保持前端接口完全不变
       routes:
         # ==================== 认证服务 ====================
         - id: auth-service
-          uri: lb://gamevault-auth  # lb = LoadBalancer，从 Nacos 获取
+          uri: lb://gamevault-auth
           predicates:
-            - Path=/api/auth/**,/.well-known/jwks.json
+            - Path=/api/auth/**, /.well-known/jwks.json, /api/settings/**
           filters:
-            - StripPrefix=0  # 不去除路径前缀，完整转发
+            - StripPrefix=0
+
+        # ==================== Shopping 服务 ====================
+        - id: shopping-service
+          uri: lb://gamevault-shopping
+          predicates:
+            - Path=/api/games/**,/api/library/**,/api/cart/**,/api/orders/**,/api/admin/games/**,/api/user/activation-codes/**
+          filters:
+            - StripPrefix=0
+
+        # ==================== WebSocket 服务（独立配置，优先匹配）====================
+        - id: social-websocket
+          uri: lb:ws://gamevault-social
+          predicates:
+            - Path=/ws/info/**,/ws/**
+          filters:
+            - StripPrefix=0
+
+        # ==================== Social 服务 ====================
+        - id: social-service
+          uri: lb://gamevault-social
+          predicates:
+            - Path=/api/conversation/**,/api/friend/**,/api/message/**,/api/file/**
+          filters:
+            - StripPrefix=0
 
       # 全局跨域配置
       globalcors:
+        add-to-simple-url-handler-mapping: true
         corsConfigurations:
-          '[/**]':
+          '[/api/**]':
             allowedOriginPatterns:
               - "http://localhost:3000"
               - "http://127.0.0.1:3000"

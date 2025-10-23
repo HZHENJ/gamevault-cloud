@@ -12,10 +12,9 @@ import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
  */
 
 @SpringBootApplication(scanBasePackages = {
-        "com.sg.nusiss.auth",     // 扫描当前服务
-        "com.sg.nusiss.common"    // 扫描 common 模块
+        "com.sg.nusiss.auth",
 })
-@EnableDiscoveryClient  // 启用 Nacos 服务注册
+@EnableDiscoveryClient
 public class AuthApplication {
     public static void main(String[] args) {
         SpringApplication.run(AuthApplication.class, args);

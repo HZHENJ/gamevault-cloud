@@ -13,6 +13,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
     boolean existsByUsername(String username);
     boolean existsByEmail(String email);
 
+    List<User> findByUsernameContainingIgnoreCase(String keyword);
+
     // 搜索用户（邮箱或用户名）
     @Query("SELECT u FROM User u WHERE " +
             "u.email = ?1 OR u.username = ?1")
