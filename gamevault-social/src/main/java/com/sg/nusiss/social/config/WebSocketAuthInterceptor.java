@@ -1,4 +1,4 @@
-package com.sg.nusiss.common.config;
+package com.sg.nusiss.social.config;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.Message;

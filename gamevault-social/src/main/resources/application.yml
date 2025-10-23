@@ -61,16 +61,6 @@ spring:
           min-idle: 0
           max-wait: -1ms
 
-# RSA 配置
-rsa:
-  private-key: "file:secrets/keys/rsa-private.pem"
-  public-key: "file:secrets/keys/rsa-public.pem"
-
-# JWT 配置
-jwt:
-  secret: "1TuQdaZEWG0U7EiIkrGX1xvbaCJDT7XAsksekHxxFgE="
-  expiration: 864000000
-
 # MinIO 配置
 minio:
   endpoint: http://localhost:9000
