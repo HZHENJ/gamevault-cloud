@@ -1,8 +1,9 @@
-package com.sg.nusiss.auth.config;
+package com.sg.nusiss.forum.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
@@ -10,28 +11,36 @@ import org.springframework.security.web.SecurityFilterChain;
 
 import java.util.Collections;
 
+/**
+ * Spring Security 配置
+ *
+ * 论坛微服务使用自定义 JWT 拦截器（ForumAuthInterceptor）进行认证
+ * 所以 Spring Security 配置为允许所有请求通过，由拦截器控制具体权限
+ *
+ * 位置: gamevault-forum/src/main/java/sg/edu/nus/gamevaultforum/config/SecurityConfig.java
+ */
 @Configuration
+@EnableWebSecurity
 public class SecurityConfig {
 
+    /**
+     * 密码编码器（用于密码加密，如果有本地认证需求）
+     */
     @Bean
     public BCryptPasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
+    /**
+     * 配置 Spring Security 过滤链
+     */
     @Bean
-    SecurityFilterChain security(HttpSecurity http) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http.csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.disable())
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(a -> a
-                        .requestMatchers("/.well-known/jwks.json").permitAll()
-                        .requestMatchers("/uploads/**").permitAll()  // 允许公开访问上传的文件（如头像）
-                        .requestMatchers("/api/auth/login").permitAll()
-                        .requestMatchers("/api/auth/register").permitAll()
-                        .requestMatchers("/api/auth/check-email").permitAll()
-                        .requestMatchers("/api/auth/check-username").permitAll()
-                        .requestMatchers("/api/auth/logout").permitAll()
-                        .requestMatchers("/api/users/**").authenticated()
+                        .requestMatchers("/api/forum/posts", "/api/forum/posts/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth -> oauth
