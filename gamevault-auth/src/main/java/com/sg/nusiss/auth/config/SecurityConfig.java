@@ -46,13 +46,8 @@ public class SecurityConfig {
     @Bean
     public JwtAuthenticationConverter jwtAuthenticationConverter() {
         JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
-
-        // 设置权限提取（暂时返回空）
         converter.setJwtGrantedAuthoritiesConverter(jwt -> Collections.emptyList());
-
-        // 设置用户名字段（JWT 中的 sub 字段）
         converter.setPrincipalClaimName("sub");
-
         return converter;
     }
 }

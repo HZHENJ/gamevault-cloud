@@ -1,5 +1,5 @@
 server:
-  port: 8080 # 前端统一入口
+  port: 8080  # 前端统一入口
 
 spring:
   application:
@@ -51,6 +51,23 @@ spring:
             - Path=/api/conversation/**,/api/friend/**,/api/message/**,/api/file/**
           filters:
             - StripPrefix=0
+
+        # ==================== 论坛服务 ====================
+        - id: forum-service
+          uri: lb://gamevault-forum
+          predicates:
+            - Path=/api/forum/**
+          filters:
+            - StripPrefix=0
+
+        # ==================== 个人资料服务 ====================
+        - id: profile-service
+          uri: lb://gamevault-profile
+          predicates:
+            - Path=/api/settings/**,/api/profile/**
+          filters:
+            - StripPrefix=0
+
 
       # 全局跨域配置
       globalcors:
