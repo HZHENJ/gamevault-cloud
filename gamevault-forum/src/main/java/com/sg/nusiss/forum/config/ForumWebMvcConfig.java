@@ -23,7 +23,7 @@ public class ForumWebMvcConfig implements WebMvcConfigurer {
                 .addPathPatterns("/api/forum/**")  // 拦截所有论坛 API
                 .excludePathPatterns(
                         // 以下接口不需要认证（可以匿名访问）
-                        "/api/forum/posts",                    // 帖子列表
+//                        "/api/forum/posts",                    // 帖子列表
                         "/api/forum/posts/{id}",               // 帖子详情
                         "/api/forum/posts/search",             // 搜索帖子
                         "/api/forum/posts/{postId}/replies",   // 回复列表

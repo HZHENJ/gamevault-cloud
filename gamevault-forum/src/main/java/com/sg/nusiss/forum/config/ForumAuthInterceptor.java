@@ -14,8 +14,6 @@ import com.sg.nusiss.forum.util.ForumJwtUtil;
 /**
  * 论坛认证拦截器
  * 拦截需要认证的请求，验证JWT token
- *
- * 位置: gamevault-forum/src/main/java/sg/edu/nus/gamevaultforum/config/ForumAuthInterceptor.java
  */
 @Component
 public class ForumAuthInterceptor implements HandlerInterceptor {
@@ -35,57 +33,56 @@ public class ForumAuthInterceptor implements HandlerInterceptor {
 
         HandlerMethod handlerMethod = (HandlerMethod) handler;
 
-        // 检查是否需要认证
+        // 检查是否需要强制认证
         RequireForumAuth requireAuth = handlerMethod.getMethodAnnotation(RequireForumAuth.class);
         if (requireAuth == null) {
             requireAuth = handlerMethod.getBeanType().getAnnotation(RequireForumAuth.class);
         }
+        boolean authRequired = requireAuth != null && requireAuth.required();
 
         // 获取 Token
         String authHeader = request.getHeader("Authorization");
         String token = null;
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            token = authHeader.substring(7); // 移除"Bearer "前缀
+            token = authHeader.substring(7);
         } else if (authHeader != null) {
             token = authHeader;
         }
         if (token == null || token.isEmpty()) {
-            token = request.getParameter("token"); // 支持 URL 参数传递
+            token = request.getParameter("token");
         }
 
-        // 验证 Token
-        if (token != null) {
+        // ✅ 关键修改：只要有Token就尝试解析
+        boolean tokenValid = false;
+        if (token != null && !token.isEmpty()) {
             try {
                 ForumJwtUtil.TokenInfo tokenInfo = jwtUtil.validateAndParseToken(token);
                 if (tokenInfo.valid) {
-                    // 将用户信息设置到 request 属性中
+                    // ✅ 设置用户信息到 request 属性
                     request.setAttribute("userId", tokenInfo.userId);
                     request.setAttribute("username", tokenInfo.username);
-                    logger.debug("论坛认证成功 - 用户ID: {}, 用户名: {}", tokenInfo.userId, tokenInfo.username);
-                    return true;
+                    tokenValid = true;
+                    logger.debug("论坛认证成功 - 用户ID: {}, 用户名: {}, 路径: {}",
+                            tokenInfo.userId, tokenInfo.username, request.getRequestURI());
                 } else {
-                    logger.warn("论坛认证失败 - Token无效 - 请求路径: {} - Token: {}",
-                            request.getRequestURI(),
-                            token.substring(0, Math.min(50, token.length())) + "...");
+                    logger.warn("Token验证失败 - 路径: {}", request.getRequestURI());
                 }
             } catch (Exception e) {
-                logger.error("论坛认证异常 - 请求路径: {} - Token: {} - 错误: {}",
-                        request.getRequestURI(),
-                        token.substring(0, Math.min(50, token.length())) + "...",
-                        e.getMessage());
+                logger.error("Token解析异常 - 路径: {}, 错误: {}",
+                        request.getRequestURI(), e.getMessage());
             }
         }
 
-        // 如果需要认证但 Token 无效
-        if (requireAuth != null && requireAuth.required()) {
-            logger.warn("论坛认证失败 - 请求路径: {}", request.getRequestURI());
+        // ✅ 如果方法标记为需要认证，但Token无效，则拒绝访问
+        if (authRequired && !tokenValid) {
+            logger.warn("需要认证但Token无效 - 路径: {}", request.getRequestURI());
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.setContentType("application/json;charset=UTF-8");
-            response.getWriter().write("{\"error\":\"未授权\",\"message\":\"请先登录\"}");
+            response.getWriter().write("{\"code\":40100,\"message\":\"请先登录\",\"data\":null}");
             return false;
         }
 
-        // 不需要认证，直接放行
+        // ✅ 不需要强制认证，或者Token有效，放行
         return true;
     }
 }

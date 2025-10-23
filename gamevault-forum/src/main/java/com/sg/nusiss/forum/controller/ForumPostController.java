@@ -1,9 +1,9 @@
 package com.sg.nusiss.forum.controller;
 
 import com.sg.nusiss.common.domain.BaseResponse;
+import com.sg.nusiss.common.domain.ErrorCode;
 import com.sg.nusiss.common.domain.ResultUtils;
 import com.sg.nusiss.common.dto.UserDTO;
-import com.sg.nusiss.common.security.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -17,7 +17,8 @@ import com.sg.nusiss.forum.service.forum.ViewTracker;
 import com.sg.nusiss.forum.service.user.UserService;
 
 import jakarta.validation.Valid;
-
+import jakarta.servlet.http.HttpServletRequest;
+import com.sg.nusiss.forum.annotation.RequireForumAuth;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -44,13 +45,13 @@ public class ForumPostController {
     @GetMapping
     public BaseResponse<?> getPostList(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+            @RequestParam(defaultValue = "20") int size,
+            HttpServletRequest request) {  // ✅ 添加参数
 
         log.info("获取帖子列表 - 页码: {}, 每页大小: {}", page, size);
 
         try {
-            // 获取当前用户ID（可能为null，未登录用户）
-            Long currentUserId = getCurrentUserIdOrNull();
+            Long currentUserId = getCurrentUserIdOrNull(request);  // ✅ 传入request
 
             List<ForumContent> posts = postService.getPostList(page, size, currentUserId);
             int totalCount = postService.getPostCount();
@@ -75,11 +76,14 @@ public class ForumPostController {
      * 根据ID获取帖子详情
      */
     @GetMapping("/{id}")
-    public BaseResponse<?> getPostById(@PathVariable Long id) {
+    public BaseResponse<?> getPostById(
+            @PathVariable Long id,
+            HttpServletRequest request) {  // ✅ 添加参数
+
         log.info("获取帖子详情 - 帖子ID: {}", id);
 
         try {
-            Long currentUserId = getCurrentUserIdOrNull();
+            Long currentUserId = getCurrentUserIdOrNull(request);  // ✅ 传入request
 
             ForumContent post = postService.getPostById(id, currentUserId);
 
@@ -97,7 +101,7 @@ public class ForumPostController {
                 log.debug("未登录用户访问 - 不计入浏览量 - 帖子ID: {}", id);
             }
 
-            // 获取作者信息（从 Auth 服务）
+            // 获取作者信息
             UserDTO author = userService.getUserById(post.getAuthorId());
             PostResponseDTO dto = PostResponseDTO.fromContentAndUser(post, author);
 
@@ -121,11 +125,20 @@ public class ForumPostController {
      * 创建新帖子
      */
     @PostMapping
-    public BaseResponse<?> createPost(@Valid @RequestBody PostDTO postDTO) {
+    @RequireForumAuth
+    public BaseResponse<?> createPost(
+            @Valid @RequestBody PostDTO postDTO,
+            HttpServletRequest request) {
 
         try {
-            // 获取当前用户ID（需要登录）
-            Long userId = SecurityUtils.getCurrentUserId();
+            // ✅ 获取当前用户ID
+            Long userId = (Long) request.getAttribute("userId");
+
+            if (userId == null) {
+                log.warn("用户未登录 - 无法创建帖子");
+                return ResultUtils.error(ErrorCode.NOT_LOGIN_ERROR, "请先登录");
+            }
+
             log.info("创建帖子 - 用户ID: {}, 标题: {}", userId, postDTO.getTitle());
 
             // 创建帖子
@@ -159,12 +172,13 @@ public class ForumPostController {
     public BaseResponse<?> searchPosts(
             @RequestParam String keyword,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+            @RequestParam(defaultValue = "20") int size,
+            HttpServletRequest request) {  // ✅ 添加参数
 
         log.info("搜索帖子 - 关键词: {}", keyword);
 
         try {
-            Long currentUserId = getCurrentUserIdOrNull();
+            Long currentUserId = getCurrentUserIdOrNull(request);  // ✅ 传入request
 
             List<ForumContent> posts = postService.searchPosts(keyword, page, size, currentUserId);
             int totalCount = postService.getSearchCount(keyword);
@@ -190,10 +204,18 @@ public class ForumPostController {
      * 删除帖子
      */
     @DeleteMapping("/{id}")
-    public BaseResponse<?> deletePost(@PathVariable Long id) {
+    @RequireForumAuth
+    public BaseResponse<?> deletePost(
+            @PathVariable Long id,
+            HttpServletRequest request) {
 
         try {
-            Long userId = SecurityUtils.getCurrentUserId();
+            Long userId = (Long) request.getAttribute("userId");  // ✅ 修正类型转换
+
+            if (userId == null) {
+                return ResultUtils.error(ErrorCode.NOT_LOGIN_ERROR, "请先登录");
+            }
+
             log.info("删除帖子 - 帖子ID: {}, 用户ID: {}", id, userId);
 
             postService.deletePost(id, userId);
@@ -215,50 +237,19 @@ public class ForumPostController {
     }
 
     /**
-     * 更新帖子
-     */
-    @PutMapping("/{id}")
-    public BaseResponse<?> updatePost(
-            @PathVariable Long id,
-            @Valid @RequestBody PostDTO postDTO) {
-
-        try {
-            Long userId = SecurityUtils.getCurrentUserId();
-            log.info("更新帖子 - 帖子ID: {}, 用户ID: {}", id, userId);
-
-            ForumContent post = postService.updatePost(id, postDTO.getTitle(), postDTO.getBody(), userId);
-
-            UserDTO author = userService.getUserById(userId);
-            PostResponseDTO dto = PostResponseDTO.fromContentAndUser(post, author);
-
-            Map<String, Object> response = new HashMap<>();
-            response.put("post", dto);
-            response.put("message", "帖子更新成功");
-
-            return ResultUtils.success(response);
-
-        } catch (RuntimeException e) {
-            if (e.getMessage().contains("权限")) {
-                return ResultUtils.error(40300, e.getMessage());
-            } else if (e.getMessage().contains("不存在")) {
-                return ResultUtils.error(40400, e.getMessage());
-            } else {
-                return ResultUtils.error(50000, e.getMessage());
-            }
-        } catch (Exception e) {
-            log.error("更新帖子失败", e);
-            return ResultUtils.error(50000, "更新帖子失败: " + e.getMessage());
-        }
-    }
-
-    /**
      * 点赞帖子
      */
     @PostMapping("/{id}/like")
-    public BaseResponse<?> likePost(@PathVariable Long id) {
+    @RequireForumAuth
+    public BaseResponse<?> likePost(
+            @PathVariable Long id,
+            HttpServletRequest request) {  // ✅ 添加参数
         try {
-            Long userId = SecurityUtils.getCurrentUserId();
-            log.info("点赞帖子 - 帖子ID: {}, 用户ID: {}", id, userId);
+            Long userId = (Long) request.getAttribute("userId");
+
+            if (userId == null) {
+                return ResultUtils.error(ErrorCode.NOT_LOGIN_ERROR, "请先登录");
+            }
 
             boolean result = contentLikeService.likeContent(id, userId);
 
@@ -271,7 +262,6 @@ public class ForumPostController {
             } else {
                 return ResultUtils.error(40000, "已经点赞过了");
             }
-
         } catch (Exception e) {
             log.error("点赞失败", e);
             return ResultUtils.error(50000, "点赞失败: " + e.getMessage());
@@ -282,10 +272,16 @@ public class ForumPostController {
      * 取消点赞帖子
      */
     @DeleteMapping("/{id}/like")
-    public BaseResponse<?> unlikePost(@PathVariable Long id) {
+    @RequireForumAuth
+    public BaseResponse<?> unlikePost(
+            @PathVariable Long id,
+            HttpServletRequest request) {  // ✅ 添加参数
         try {
-            Long userId = SecurityUtils.getCurrentUserId();
-            log.info("取消点赞帖子 - 帖子ID: {}, 用户ID: {}", id, userId);
+            Long userId = (Long) request.getAttribute("userId");
+
+            if (userId == null) {
+                return ResultUtils.error(ErrorCode.NOT_LOGIN_ERROR, "请先登录");
+            }
 
             boolean result = contentLikeService.unlikeContent(id, userId);
 
@@ -298,7 +294,6 @@ public class ForumPostController {
             } else {
                 return ResultUtils.error(40000, "未点赞过");
             }
-
         } catch (Exception e) {
             log.error("取消点赞失败", e);
             return ResultUtils.error(50000, "取消点赞失败: " + e.getMessage());
@@ -306,18 +301,19 @@ public class ForumPostController {
     }
 
     /**
-     * 获取用户的帖子列表
+     * 获取用户发布的帖子
      */
     @GetMapping("/user/{userId}")
     public BaseResponse<?> getUserPosts(
             @PathVariable Long userId,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+            @RequestParam(defaultValue = "20") int size,
+            HttpServletRequest request) {  // ✅ 添加参数
 
         log.info("获取用户帖子列表 - 用户ID: {}", userId);
 
         try {
-            Long currentUserId = getCurrentUserIdOrNull();
+            Long currentUserId = getCurrentUserIdOrNull(request);  // ✅ 传入request
 
             List<ForumContent> posts = postService.getPostsByAuthorId(userId, page, size, currentUserId);
             int totalCount = postService.getPostCountByAuthorId(userId);
@@ -345,9 +341,10 @@ public class ForumPostController {
     public BaseResponse<?> getReplies(
             @PathVariable Long postId,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+            @RequestParam(defaultValue = "20") int size,
+            HttpServletRequest request) {  // ✅ 添加参数
         try {
-            Long currentUserId = getCurrentUserIdOrNull();
+            Long currentUserId = getCurrentUserIdOrNull(request);  // ✅ 传入request
 
             List<ForumContent> replies = postService.getRepliesByPostId(postId, page, size, currentUserId);
 
@@ -391,15 +388,22 @@ public class ForumPostController {
      * 创建回复
      */
     @PostMapping("/{postId}/replies")
+    @RequireForumAuth
     public BaseResponse<?> createReply(
             @PathVariable Long postId,
-            @RequestBody Map<String, Object> request) {
+            @RequestBody Map<String, Object> requestBody,  // ✅ 改名为 requestBody
+            HttpServletRequest request) {  // ✅ 添加 HttpServletRequest
 
         try {
-            Long userId = SecurityUtils.getCurrentUserId();
-            String body = (String) request.get("body");
-            Long replyTo = request.get("replyTo") != null
-                    ? Long.valueOf(request.get("replyTo").toString())
+            Long userId = (Long) request.getAttribute("userId");
+
+            if (userId == null) {
+                return ResultUtils.error(ErrorCode.NOT_LOGIN_ERROR, "请先登录");
+            }
+
+            String body = (String) requestBody.get("body");  // ✅ 使用 requestBody
+            Long replyTo = requestBody.get("replyTo") != null
+                    ? Long.valueOf(requestBody.get("replyTo").toString())
                     : null;
 
             log.info("创建回复 - 帖子ID: {}, 用户ID: {}, replyTo: {}", postId, userId, replyTo);
@@ -435,12 +439,19 @@ public class ForumPostController {
      * 删除回复
      */
     @DeleteMapping("/{postId}/replies/{replyId}")
+    @RequireForumAuth
     public BaseResponse<?> deleteReply(
             @PathVariable Long postId,
-            @PathVariable Long replyId) {
+            @PathVariable Long replyId,
+            HttpServletRequest request) {  // ✅ 添加参数
 
         try {
-            Long userId = SecurityUtils.getCurrentUserId();
+            Long userId = (Long) request.getAttribute("userId");
+
+            if (userId == null) {
+                return ResultUtils.error(ErrorCode.NOT_LOGIN_ERROR, "请先登录");
+            }
+
             log.info("删除回复 - 帖子ID: {}, 回复ID: {}, 用户ID: {}", postId, replyId, userId);
 
             postService.deleteReply(replyId, userId);
@@ -465,11 +476,18 @@ public class ForumPostController {
      * 点赞回复
      */
     @PostMapping("/{postId}/replies/{replyId}/like")
+    @RequireForumAuth
     public BaseResponse<?> likeReply(
             @PathVariable Long postId,
-            @PathVariable Long replyId) {
+            @PathVariable Long replyId,
+            HttpServletRequest request) {  // ✅ 添加参数
         try {
-            Long userId = SecurityUtils.getCurrentUserId();
+            Long userId = (Long) request.getAttribute("userId");
+
+            if (userId == null) {
+                return ResultUtils.error(ErrorCode.NOT_LOGIN_ERROR, "请先登录");
+            }
+
             boolean result = contentLikeService.likeContent(replyId, userId);
 
             if (result) {
@@ -491,11 +509,18 @@ public class ForumPostController {
      * 取消点赞回复
      */
     @DeleteMapping("/{postId}/replies/{replyId}/like")
+    @RequireForumAuth
     public BaseResponse<?> unlikeReply(
             @PathVariable Long postId,
-            @PathVariable Long replyId) {
+            @PathVariable Long replyId,
+            HttpServletRequest request) {  // ✅ 添加参数
         try {
-            Long userId = SecurityUtils.getCurrentUserId();
+            Long userId = (Long) request.getAttribute("userId");
+
+            if (userId == null) {
+                return ResultUtils.error(ErrorCode.NOT_LOGIN_ERROR, "请先登录");
+            }
+
             boolean result = contentLikeService.unlikeContent(replyId, userId);
 
             if (result) {
@@ -518,9 +543,9 @@ public class ForumPostController {
     /**
      * 获取当前用户ID（可能为null）
      */
-    private Long getCurrentUserIdOrNull() {
+    private Long getCurrentUserIdOrNull(HttpServletRequest request) {
         try {
-            return SecurityUtils.getCurrentUserId();
+            return (Long) request.getAttribute("userId");
         } catch (Exception e) {
             return null;
         }

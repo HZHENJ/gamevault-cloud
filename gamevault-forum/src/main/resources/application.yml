@@ -23,17 +23,17 @@ spring:
     driver-class-name: org.postgresql.Driver
 
   data:
-    redis:
-      host: localhost
-      database: 1
-      port: 12003
-      timeout: 3000ms
-      lettuce:
-        pool:
-          max-active: 8
-          max-idle: 8
-          min-idle: 0
-          max-wait: -1ms
+#    redis:
+#      host: localhost
+#      database: 1
+#      port: 12003
+#      timeout: 3000ms
+#      lettuce:
+#        pool:
+#          max-active: 8
+#          max-idle: 8
+#          min-idle: 0
+#          max-wait: -1ms
 
   servlet:
     multipart:
@@ -43,7 +43,7 @@ spring:
 
 # MyBatis ??
 mybatis:
-  mapper-locations: classpath:mapper/forum/*.xml
+  mapper-locations: classpath:forum/*.xml
   type-aliases-package: com.sg.nusiss.forum.entity
   configuration:
     map-underscore-to-camel-case: true
