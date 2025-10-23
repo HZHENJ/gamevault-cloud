@@ -1,5 +1,7 @@
 package com.sg.nusiss.forum.service.forum;
 
+import com.sg.nusiss.common.dto.UserDTO;
+import com.sg.nusiss.forum.service.user.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -16,6 +18,8 @@ import java.util.stream.Collectors;
 /**
  * 帖子业务服务类
  * 处理帖子相关的业务逻辑
+ *
+ * ⭐ 修复版本 - 已添加用户信息获取功能
  */
 @Slf4j
 @Service
@@ -25,6 +29,9 @@ public class ForumPostService {
     private final ForumContentMapper contentMapper;
     private final ForumMetricMapper metricMapper;
     private final ForumContentLikeService contentLikeService;
+
+    // ⭐ 修复: 添加 UserService 注入
+    private final UserService userService;
 
     /**
      * 创建新帖子
@@ -56,6 +63,10 @@ public class ForumPostService {
                 log.info("帖子创建成功 - 帖子ID: {}, 作者ID: {}", post.getContentId(), authorId);
                 // 初始化统计数据
                 initializePostMetrics(post.getContentId());
+
+                // ⭐ 修复: 填充作者信息
+                enrichSinglePostWithUserInfo(post);
+
                 return post;
             } else {
                 log.error("创建帖子失败 - 数据库插入返回0, 作者ID: {}", authorId);
@@ -69,6 +80,7 @@ public class ForumPostService {
 
     /**
      * 根据ID获取帖子详情
+     * ⭐ 修复: 添加用户信息获取
      */
     public ForumContent getPostById(Long id, Long currentUserId) {
         ForumContent post = contentMapper.findById(id);
@@ -78,6 +90,9 @@ public class ForumPostService {
         }
 
         log.info("从数据库查到的点赞数: {}", post.getLikeCount());
+
+        // ⭐ 修复: 获取作者信息
+        enrichSinglePostWithUserInfo(post);
 
         // 查询点赞状态
         if (currentUserId != null) {
@@ -90,24 +105,21 @@ public class ForumPostService {
 
     /**
      * 获取帖子列表（带当前用户的点赞状态）
+     * ⭐ 修复: 添加用户信息获取
      */
     public List<ForumContent> getPostList(int page, int size, Long currentUserId) {
         List<ForumContent> posts = contentMapper.findActivePosts(page * size, size);
 
+        if (posts.isEmpty()) {
+            return posts;
+        }
+
+        // ⭐ 修复: 批量获取并填充用户信息
+        enrichPostsWithUserInfo(posts);
+
         // 设置点赞状态
-        if (currentUserId != null && !posts.isEmpty()) {
-            List<Long> postIds = posts.stream()
-                    .map(ForumContent::getContentId)
-                    .collect(Collectors.toList());
-
-            Map<Long, Boolean> likeStatus = contentLikeService
-                    .batchCheckLikeStatus(currentUserId, postIds);
-
-            posts.forEach(post ->
-                    post.setIsLikedByCurrentUser(
-                            likeStatus.getOrDefault(post.getContentId(), false)
-                    )
-            );
+        if (currentUserId != null) {
+            enrichPostsWithLikeStatus(posts, currentUserId);
         }
 
         return posts;
@@ -122,6 +134,7 @@ public class ForumPostService {
 
     /**
      * 搜索帖子
+     * ⭐ 修复: 添加用户信息获取
      */
     public List<ForumContent> searchPosts(String keyword, int page, int size, Long currentUserId) {
         if (keyword == null || keyword.trim().isEmpty()) {
@@ -134,21 +147,18 @@ public class ForumPostService {
         int offset = page * size;
         List<ForumContent> posts = contentMapper.searchPosts(keyword.trim(), offset, size);
 
-        // 设置点赞状态
-        if (currentUserId != null && !posts.isEmpty()) {
-            List<Long> postIds = posts.stream()
-                    .map(ForumContent::getContentId)
-                    .collect(Collectors.toList());
-
-            Map<Long, Boolean> likeStatus = contentLikeService
-                    .batchCheckLikeStatus(currentUserId, postIds);
-
-            posts.forEach(post ->
-                    post.setIsLikedByCurrentUser(
-                            likeStatus.getOrDefault(post.getContentId(), false)
-                    )
-            );
+        if (posts.isEmpty()) {
+            return posts;
         }
+
+        // ⭐ 修复: 批量获取并填充用户信息
+        enrichPostsWithUserInfo(posts);
+
+        // 设置点赞状态
+        if (currentUserId != null) {
+            enrichPostsWithLikeStatus(posts, currentUserId);
+        }
+
         return posts;
     }
 
@@ -234,6 +244,8 @@ public class ForumPostService {
         // 保存更新
         int result = contentMapper.update(post);
         if (result > 0) {
+            // ⭐ 修复: 填充作者信息
+            enrichSinglePostWithUserInfo(post);
             return post;
         } else {
             throw new RuntimeException("更新帖子失败");
@@ -255,6 +267,7 @@ public class ForumPostService {
 
     /**
      * 根据作者ID获取活跃帖子列表（未删除）
+     * ⭐ 修复: 添加用户信息获取
      */
     public List<ForumContent> getPostsByAuthorId(Long authorId, int page, int size, Long currentUserId) {
         if (authorId == null) {
@@ -269,20 +282,27 @@ public class ForumPostService {
 
         List<ForumContent> posts = contentMapper.selectActiveByAuthorId(authorId, offset, size);
 
+        if (posts.isEmpty()) {
+            return posts;
+        }
+
+        // ⭐ 修复: 获取作者信息(所有帖子是同一个作者,只需要查一次)
+        UserDTO author = userService.getUserById(authorId);
+        posts.forEach(post -> {
+            if (author != null) {
+                post.setAuthorName(author.getUsername());
+                post.setAuthorAvatar(author.getAvatarUrl());
+                log.debug("填充用户信息 - 帖子ID: {}, 用户: {}", post.getContentId(), author.getUsername());
+            } else {
+                post.setAuthorName("未知用户");
+                post.setAuthorAvatar(null);
+                log.warn("用户不存在 - 作者ID: {}", authorId);
+            }
+        });
+
         // 如果用户登录了，批量查询点赞状态
-        if (currentUserId != null && !posts.isEmpty()) {
-            List<Long> postIds = posts.stream()
-                    .map(ForumContent::getContentId)
-                    .collect(Collectors.toList());
-
-            Map<Long, Boolean> likeStatus = contentLikeService
-                    .batchCheckLikeStatus(currentUserId, postIds);
-
-            posts.forEach(post ->
-                    post.setIsLikedByCurrentUser(
-                            likeStatus.getOrDefault(post.getContentId(), false)
-                    )
-            );
+        if (currentUserId != null) {
+            enrichPostsWithLikeStatus(posts, currentUserId);
         }
 
         return posts;
@@ -365,6 +385,9 @@ public class ForumPostService {
                 // 更新父内容(帖子)的回复数 +1
                 metricMapper.incrementMetric(parentId, "reply_count", 1);
 
+                // ⭐ 修复: 填充作者信息
+                enrichSinglePostWithUserInfo(reply);
+
                 return reply;
             } else {
                 throw new RuntimeException("创建回复失败");
@@ -378,6 +401,7 @@ public class ForumPostService {
 
     /**
      * 获取帖子的回复列表（分页）
+     * ⭐ 修复: 添加用户信息获取
      */
     public List<ForumContent> getRepliesByPostId(Long postId, int page, int size, Long currentUserId) {
         if (postId == null) {
@@ -392,6 +416,13 @@ public class ForumPostService {
         // 查询回复列表
         List<ForumContent> replies = contentMapper.findChildren(postId, offset, size);
 
+        if (replies.isEmpty()) {
+            return replies;
+        }
+
+        // ⭐ 修复: 批量获取并填充用户信息
+        enrichPostsWithUserInfo(replies);
+
         // 为每个回复加载统计数据（如果 SQL 没有 JOIN）
         for (ForumContent reply : replies) {
             if (reply.getLikeCount() == null) {
@@ -401,19 +432,8 @@ public class ForumPostService {
         }
 
         // 设置当前用户的点赞状态
-        if (currentUserId != null && !replies.isEmpty()) {
-            List<Long> replyIds = replies.stream()
-                    .map(ForumContent::getContentId)
-                    .collect(Collectors.toList());
-
-            Map<Long, Boolean> likeStatus = contentLikeService
-                    .batchCheckLikeStatus(currentUserId, replyIds);
-
-            replies.forEach(reply ->
-                    reply.setIsLikedByCurrentUser(
-                            likeStatus.getOrDefault(reply.getContentId(), false)
-                    )
-            );
+        if (currentUserId != null) {
+            enrichPostsWithLikeStatus(replies, currentUserId);
         }
 
         return replies;
@@ -474,5 +494,89 @@ public class ForumPostService {
         } catch (Exception e) {
             log.error("初始化回复统计数据失败: {}", e.getMessage());
         }
+    }
+
+    // ========================================
+    // ⭐ 新增辅助方法: 用户信息填充
+    // ========================================
+
+    /**
+     * 为单个帖子/回复填充用户信息
+     */
+    private void enrichSinglePostWithUserInfo(ForumContent content) {
+        if (content == null) {
+            return;
+        }
+
+        UserDTO author = userService.getUserById(content.getAuthorId());
+        if (author != null) {
+            content.setAuthorName(author.getUsername());
+            content.setAuthorAvatar(author.getAvatarUrl());
+            log.debug("填充用户信息 - 内容ID: {}, 用户: {}", content.getContentId(), author.getUsername());
+        } else {
+            content.setAuthorName("未知用户");
+            content.setAuthorAvatar(null);
+            log.warn("用户不存在 - 作者ID: {}", content.getAuthorId());
+        }
+    }
+
+    /**
+     * 批量填充帖子/回复的用户信息
+     */
+    private void enrichPostsWithUserInfo(List<ForumContent> contents) {
+        if (contents == null || contents.isEmpty()) {
+            return;
+        }
+
+        // 1. 收集所有作者ID
+        List<Long> authorIds = contents.stream()
+                .map(ForumContent::getAuthorId)
+                .distinct()
+                .collect(Collectors.toList());
+
+        log.info("批量查询用户信息 - 用户ID列表: {}", authorIds);
+
+        // 2. 批量查询用户
+        List<UserDTO> users = userService.getUsersByIds(authorIds);
+        Map<Long, UserDTO> userMap = users.stream()
+                .collect(Collectors.toMap(UserDTO::getUserId, user -> user));
+
+        log.info("批量查询到 {} 个用户", users.size());
+
+        // 3. 填充用户信息到内容
+        contents.forEach(content -> {
+            UserDTO user = userMap.get(content.getAuthorId());
+            if (user != null) {
+                content.setAuthorName(user.getUsername());
+                content.setAuthorAvatar(user.getAvatarUrl());
+                log.debug("填充用户信息 - 内容ID: {}, 用户: {}", content.getContentId(), user.getUsername());
+            } else {
+                content.setAuthorName("未知用户");
+                content.setAuthorAvatar(null);
+                log.warn("用户不存在 - 作者ID: {}", content.getAuthorId());
+            }
+        });
+    }
+
+    /**
+     * 批量填充点赞状态
+     */
+    private void enrichPostsWithLikeStatus(List<ForumContent> contents, Long currentUserId) {
+        if (contents == null || contents.isEmpty() || currentUserId == null) {
+            return;
+        }
+
+        List<Long> contentIds = contents.stream()
+                .map(ForumContent::getContentId)
+                .collect(Collectors.toList());
+
+        Map<Long, Boolean> likeStatus = contentLikeService
+                .batchCheckLikeStatus(currentUserId, contentIds);
+
+        contents.forEach(content ->
+                content.setIsLikedByCurrentUser(
+                        likeStatus.getOrDefault(content.getContentId(), false)
+                )
+        );
     }
 }

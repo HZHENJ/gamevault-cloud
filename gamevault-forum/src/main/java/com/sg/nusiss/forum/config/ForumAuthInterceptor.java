@@ -26,63 +26,58 @@ public class ForumAuthInterceptor implements HandlerInterceptor {
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response,
                              Object handler) throws Exception {
 
-        // 如果不是方法处理器，直接放行
-        if (!(handler instanceof HandlerMethod)) {
-            return true;
-        }
-
-        HandlerMethod handlerMethod = (HandlerMethod) handler;
-
-        // 检查是否需要强制认证
-        RequireForumAuth requireAuth = handlerMethod.getMethodAnnotation(RequireForumAuth.class);
-        if (requireAuth == null) {
-            requireAuth = handlerMethod.getBeanType().getAnnotation(RequireForumAuth.class);
-        }
-        boolean authRequired = requireAuth != null && requireAuth.required();
+        logger.info("========== 认证拦截器开始 ==========");
+        logger.info("请求路径: {}", request.getRequestURI());
+        logger.info("请求方法: {}", request.getMethod());
 
         // 获取 Token
         String authHeader = request.getHeader("Authorization");
+        logger.info("Authorization header: {}", authHeader);
+
         String token = null;
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             token = authHeader.substring(7);
-        } else if (authHeader != null) {
-            token = authHeader;
-        }
-        if (token == null || token.isEmpty()) {
-            token = request.getParameter("token");
+            logger.info("提取的 token (前50字符): {}", token.substring(0, Math.min(50, token.length())));
+        } else {
+            logger.warn("Authorization header 格式不正确或不存在");
         }
 
-        // ✅ 关键修改：只要有Token就尝试解析
-        boolean tokenValid = false;
-        if (token != null && !token.isEmpty()) {
+        if (token == null || token.isEmpty()) {
+            token = request.getParameter("token");
+            logger.info("从 URL 参数获取 token: {}", token != null ? "存在" : "不存在");
+        }
+
+        // 验证 Token
+        if (token != null) {
             try {
                 ForumJwtUtil.TokenInfo tokenInfo = jwtUtil.validateAndParseToken(token);
+                logger.info("Token 验证结果 - valid: {}, userId: {}, username: {}",
+                        tokenInfo.valid, tokenInfo.userId, tokenInfo.username);
+
                 if (tokenInfo.valid) {
-                    // ✅ 设置用户信息到 request 属性
                     request.setAttribute("userId", tokenInfo.userId);
                     request.setAttribute("username", tokenInfo.username);
-                    tokenValid = true;
-                    logger.debug("论坛认证成功 - 用户ID: {}, 用户名: {}, 路径: {}",
-                            tokenInfo.userId, tokenInfo.username, request.getRequestURI());
+                    logger.info("✅ 认证成功 - 用户ID: {}, 用户名: {}", tokenInfo.userId, tokenInfo.username);
+                    return true;
                 } else {
-                    logger.warn("Token验证失败 - 路径: {}", request.getRequestURI());
+                    logger.warn("❌ Token 无效");
                 }
             } catch (Exception e) {
-                logger.error("Token解析异常 - 路径: {}, 错误: {}",
-                        request.getRequestURI(), e.getMessage());
+                logger.error("❌ Token 验证异常: {}", e.getMessage(), e);
             }
         }
 
-        // ✅ 如果方法标记为需要认证，但Token无效，则拒绝访问
-        if (authRequired && !tokenValid) {
-            logger.warn("需要认证但Token无效 - 路径: {}", request.getRequestURI());
+        // 检查是否需要认证
+        RequireForumAuth requireAuth = ((HandlerMethod) handler).getMethodAnnotation(RequireForumAuth.class);
+        if (requireAuth != null && requireAuth.required()) {
+            logger.warn("❌ 需要认证但 Token 无效 - 返回 401");
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.setContentType("application/json;charset=UTF-8");
-            response.getWriter().write("{\"code\":40100,\"message\":\"请先登录\",\"data\":null}");
+            response.getWriter().write("{\"error\":\"未授权\",\"message\":\"请先登录\"}");
             return false;
         }
 
-        // ✅ 不需要强制认证，或者Token有效，放行
+        logger.info("========== 认证拦截器结束 ==========");
         return true;
     }
 }

@@ -6,6 +6,10 @@ import com.sg.nusiss.common.domain.ResultUtils;
 import com.sg.nusiss.common.dto.UserDTO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import com.sg.nusiss.forum.dto.PostDTO;
 import com.sg.nusiss.forum.dto.PostResponseDTO;
@@ -38,7 +42,7 @@ public class ForumPostController {
     private final UserService userService;
     private final ForumContentLikeService contentLikeService;
     private final ViewTracker viewTracker;
-
+    private static final Logger logger = LoggerFactory.getLogger(ForumPostController.class);
     /**
      * 获取帖子列表（分页）
      */
@@ -77,7 +81,7 @@ public class ForumPostController {
      */
     @GetMapping("/{id}")
     public BaseResponse<?> getPostById(
-            @PathVariable Long id,
+            @PathVariable(value = "id") Long id,
             HttpServletRequest request) {  // ✅ 添加参数
 
         log.info("获取帖子详情 - 帖子ID: {}", id);
@@ -206,7 +210,7 @@ public class ForumPostController {
     @DeleteMapping("/{id}")
     @RequireForumAuth
     public BaseResponse<?> deletePost(
-            @PathVariable Long id,
+            @PathVariable(value = "id") Long id,
             HttpServletRequest request) {
 
         try {
@@ -242,7 +246,7 @@ public class ForumPostController {
     @PostMapping("/{id}/like")
     @RequireForumAuth
     public BaseResponse<?> likePost(
-            @PathVariable Long id,
+            @PathVariable(value = "id") Long id,
             HttpServletRequest request) {  // ✅ 添加参数
         try {
             Long userId = (Long) request.getAttribute("userId");
@@ -269,12 +273,52 @@ public class ForumPostController {
     }
 
     /**
+     * 切换点赞状态（点赞/取消点赞）
+     */
+    @PutMapping("/{id}/like/toggle")
+    @RequireForumAuth
+    public BaseResponse<?> toggleLike(
+            @PathVariable(name = "id") Long id,
+            HttpServletRequest request) {
+        try {
+            Long userId = (Long) request.getAttribute("userId");
+            log.info("切换点赞状态 - 帖子ID: {}, 用户ID: {}", id, userId);
+
+            // 验证用户登录
+            if (userId == null) {
+                return ResultUtils.error(ErrorCode.NOT_LOGIN_ERROR, "请先登录");
+            }
+
+            // 切换点赞状态
+            boolean liked = contentLikeService.toggleLike(id, userId);
+            int likeCount = contentLikeService.getLikeCount(id);
+
+            log.info("点赞操作成功 - 帖子ID: {}, 用户ID: {}, 状态: {}", id, userId, liked ? "已点赞" : "已取消");
+
+            return ResultUtils.success(Map.of(
+                    "success", true,
+                    "message", liked ? "点赞成功" : "取消点赞成功",
+                    "liked", liked,
+                    "likeCount", likeCount
+            ));
+
+        } catch (IllegalArgumentException e) {
+            log.warn("参数错误: {}", e.getMessage());
+            return ResultUtils.error(40000, e.getMessage());
+
+        } catch (Exception e) {
+            log.error("切换点赞失败", e);
+            return ResultUtils.error(50000, "操作失败: " + e.getMessage());
+        }
+    }
+
+    /**
      * 取消点赞帖子
      */
     @DeleteMapping("/{id}/like")
     @RequireForumAuth
     public BaseResponse<?> unlikePost(
-            @PathVariable Long id,
+            @PathVariable(value = "id") Long id,
             HttpServletRequest request) {  // ✅ 添加参数
         try {
             Long userId = (Long) request.getAttribute("userId");
@@ -305,7 +349,7 @@ public class ForumPostController {
      */
     @GetMapping("/user/{userId}")
     public BaseResponse<?> getUserPosts(
-            @PathVariable Long userId,
+            @PathVariable(value = "userId") Long userId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             HttpServletRequest request) {  // ✅ 添加参数
@@ -339,7 +383,7 @@ public class ForumPostController {
      */
     @GetMapping("/{postId}/replies")
     public BaseResponse<?> getReplies(
-            @PathVariable Long postId,
+            @PathVariable(value = "postId") Long postId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             HttpServletRequest request) {  // ✅ 添加参数
@@ -386,32 +430,36 @@ public class ForumPostController {
 
     /**
      * 创建回复
+     * POST /api/forum/posts/{postId}/replies
      */
     @PostMapping("/{postId}/replies")
     @RequireForumAuth
     public BaseResponse<?> createReply(
-            @PathVariable Long postId,
-            @RequestBody Map<String, Object> requestBody,  // ✅ 改名为 requestBody
-            HttpServletRequest request) {  // ✅ 添加 HttpServletRequest
+            @PathVariable(name = "postId") Long postId,
+            @RequestBody Map<String, Object> requestBody,
+            HttpServletRequest request) {
 
         try {
             Long userId = (Long) request.getAttribute("userId");
-
-            if (userId == null) {
-                return ResultUtils.error(ErrorCode.NOT_LOGIN_ERROR, "请先登录");
-            }
-
-            String body = (String) requestBody.get("body");  // ✅ 使用 requestBody
+            String body = (String) requestBody.get("body");
             Long replyTo = requestBody.get("replyTo") != null
                     ? Long.valueOf(requestBody.get("replyTo").toString())
                     : null;
 
             log.info("创建回复 - 帖子ID: {}, 用户ID: {}, replyTo: {}", postId, userId, replyTo);
 
-            if (body == null || body.trim().isEmpty()) {
-                return ResultUtils.error(40000, "回复内容不能为空");
+            // 验证用户登录
+            if (userId == null) {
+                log.warn("userId 为 null，认证失败");
+                return ResultUtils.error(ErrorCode.NOT_LOGIN_ERROR, "请先登录");
             }
 
+            // 验证回复内容
+            if (body == null || body.trim().isEmpty()) {
+                return ResultUtils.error(ErrorCode.PARAMS_ERROR, "回复内容不能为空");
+            }
+
+            // 创建回复
             ForumContent reply = postService.createReply(postId, body, userId, replyTo);
 
             // 获取作者信息
@@ -427,11 +475,11 @@ public class ForumPostController {
 
         } catch (IllegalArgumentException e) {
             log.warn("参数错误: {}", e.getMessage());
-            return ResultUtils.error(40000, e.getMessage());
+            return ResultUtils.error(ErrorCode.PARAMS_ERROR, e.getMessage());
 
         } catch (Exception e) {
             log.error("创建回复失败", e);
-            return ResultUtils.error(50000, "创建回复失败: " + e.getMessage());
+            return ResultUtils.error(ErrorCode.SYSTEM_ERROR, "创建回复失败: " + e.getMessage());
         }
     }
 
@@ -441,8 +489,8 @@ public class ForumPostController {
     @DeleteMapping("/{postId}/replies/{replyId}")
     @RequireForumAuth
     public BaseResponse<?> deleteReply(
-            @PathVariable Long postId,
-            @PathVariable Long replyId,
+            @PathVariable(value = "postId") Long postId,
+            @PathVariable(value = "replyId") Long replyId,
             HttpServletRequest request) {  // ✅ 添加参数
 
         try {
@@ -478,8 +526,8 @@ public class ForumPostController {
     @PostMapping("/{postId}/replies/{replyId}/like")
     @RequireForumAuth
     public BaseResponse<?> likeReply(
-            @PathVariable Long postId,
-            @PathVariable Long replyId,
+            @PathVariable(value = "postId") Long postId,
+            @PathVariable(value = "replyId") Long replyId,
             HttpServletRequest request) {  // ✅ 添加参数
         try {
             Long userId = (Long) request.getAttribute("userId");
@@ -511,8 +559,8 @@ public class ForumPostController {
     @DeleteMapping("/{postId}/replies/{replyId}/like")
     @RequireForumAuth
     public BaseResponse<?> unlikeReply(
-            @PathVariable Long postId,
-            @PathVariable Long replyId,
+            @PathVariable(value = "postId") Long postId,
+            @PathVariable(value = "replyId") Long replyId,
             HttpServletRequest request) {  // ✅ 添加参数
         try {
             Long userId = (Long) request.getAttribute("userId");

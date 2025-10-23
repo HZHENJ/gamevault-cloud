@@ -6,7 +6,10 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.web.SecurityFilterChain;
+
+import java.util.Collections;
 
 /**
  * Spring Security 配置
@@ -33,24 +36,27 @@ public class SecurityConfig {
      */
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http
-                // 禁用 CSRF（前后端分离，使用 JWT 认证）
-                .csrf(csrf -> csrf.disable())
-
-                // 禁用 CORS（由 CorsConfig 单独处理）
+        http.csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.disable())
-
-                // 无状态会话（不使用 Session）
-                .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(a -> a
+                        .requestMatchers("/api/forum/posts", "/api/forum/posts/**").permitAll()
+                        .anyRequest().authenticated()
                 )
-
-                // 允许所有请求通过 Spring Security
-                // 实际的认证由 ForumAuthInterceptor 处理
-                .authorizeHttpRequests(auth -> auth
-                        .anyRequest().permitAll()
+                .oauth2ResourceServer(oauth -> oauth
+                        .jwt(jwt -> jwt
+                                .jwtAuthenticationConverter(jwtAuthenticationConverter())
+                        )
                 );
 
         return http.build();
+    }
+
+    @Bean
+    public JwtAuthenticationConverter jwtAuthenticationConverter() {
+        JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
+        converter.setJwtGrantedAuthoritiesConverter(jwt -> Collections.emptyList());
+        converter.setPrincipalClaimName("sub");
+        return converter;
     }
 }

@@ -24,6 +24,8 @@ public class ForumContent {
     private Integer viewCount;
     private Integer replyCount;
     private Boolean isLikedByCurrentUser;
+    private String authorName;      // 作者用户名 (非数据库字段)
+    private String authorAvatar;
     // 默认构造函数
     public ForumContent() {}
 
@@ -69,6 +71,21 @@ public class ForumContent {
         this.updatedDate = LocalDateTime.now();
     }
 
+    public String getAuthorName() {
+        return authorName;
+    }
+
+    public void setAuthorName(String authorName) {
+        this.authorName = authorName;
+    }
+
+    public String getAuthorAvatar() {
+        return authorAvatar;
+    }
+
+    public void setAuthorAvatar(String authorAvatar) {
+        this.authorAvatar = authorAvatar;
+    }
 
     public Long getContentId() {
         return contentId;

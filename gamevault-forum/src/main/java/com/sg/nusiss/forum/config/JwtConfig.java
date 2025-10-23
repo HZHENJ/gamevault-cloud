@@ -1,6 +1,5 @@
 package com.sg.nusiss.forum.config;
 
-import com.nimbusds.jose.JOSEException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -8,32 +7,31 @@ import org.springframework.core.io.Resource;
 import org.springframework.security.converter.RsaKeyConverters;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+import lombok.extern.slf4j.Slf4j;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.security.interfaces.RSAPublicKey;
 
-/**
- * 论坛微服务 JWT 配置
- * 只负责验证从 auth 微服务生成的 JWT Token
- *
- * 位置: gamevault-forum/src/main/java/sg/edu/nus/gamevaultforum/config/JwtConfig.java
- */
+@Slf4j
 @Configuration
 public class JwtConfig {
 
     @Value("${rsa.public-key}")
     private Resource publicKeyResource;
 
-    /**
-     * 配置 JwtDecoder - 用于验证 JWT Token
-     * 使用 RSA 公钥验证从 auth 微服务生成的 JWT
-     */
     @Bean
-    public JwtDecoder jwtDecoder() throws IOException {
-        try (InputStream pubStream = publicKeyResource.getInputStream()) {
-            RSAPublicKey publicKey = (RSAPublicKey) RsaKeyConverters.x509().convert(pubStream);
-            return NimbusJwtDecoder.withPublicKey(publicKey).build();
+    public JwtDecoder jwtDecoder() {
+        try {
+            log.info("加载公钥文件: {}", publicKeyResource.getFilename());
+
+            try (InputStream pubStream = publicKeyResource.getInputStream()) {
+                RSAPublicKey publicKey = (RSAPublicKey) RsaKeyConverters.x509().convert(pubStream);
+                log.info("公钥加载成功");
+                return NimbusJwtDecoder.withPublicKey(publicKey).build();
+            }
+        } catch (Exception e) {
+            log.error("加载公钥失败", e);
+            throw new RuntimeException("无法加载JWT公钥", e);
         }
     }
 }

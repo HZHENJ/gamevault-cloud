@@ -64,31 +64,23 @@ public class ForumJwtUtil {
             token = token.substring(7);
         }
 
-        // 开发环境：检查是否是 Mock Token
-        if (mockEnabled && MOCK_TOKENS.containsKey(token)) {
-            MockUser mockUser = MOCK_TOKENS.get(token);
-            logger.debug("使用 Mock Token: {} -> {}", token, mockUser.username);
-            return new TokenInfo(true, mockUser.userId, mockUser.username);
-        }
+        logger.debug("开始验证 token...");
 
-        // 使用RS256算法解析JWT（与gamevault-auth统一）
+        // 使用 RS256 解析
         try {
             Claims rs256Claims = parseTokenForRS256(token);
             if (rs256Claims != null) {
-                // 从RS256 JWT中提取信息
                 String username = rs256Claims.getSubject();
                 Long userId = rs256Claims.get("uid", Long.class);
-                if (userId == null) {
-                    userId = rs256Claims.get("userId", Long.class);
-                }
+
+                logger.debug("RS256 解析成功 - username: {}, userId: {}", username, userId);
 
                 if (username != null && userId != null) {
-                    logger.debug("成功解析RS256 JWT: username={}, userId={}", username, userId);
                     return new TokenInfo(true, userId, username);
                 }
             }
         } catch (Exception e) {
-            logger.error("RS256解析失败: {}", e.getMessage());
+            logger.error("RS256 解析失败: {}", e.getMessage());
         }
 
         return new TokenInfo(false, null, null);
