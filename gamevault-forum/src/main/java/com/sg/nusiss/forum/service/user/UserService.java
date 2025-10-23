@@ -5,7 +5,6 @@ import com.sg.nusiss.common.dto.UserDTO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
@@ -14,7 +13,6 @@ import org.springframework.web.client.RestTemplate;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
@@ -22,30 +20,19 @@ import java.util.concurrent.TimeUnit;
 public class UserService {
 
     private final RestTemplate restTemplate;
-    private final RedisTemplate<String, Object> redisTemplate;
+    // 移除 RedisTemplate
 
     private static final String AUTH_SERVICE_URL = "http://gamevault-auth";
-    private static final String CACHE_PREFIX = "user:";
-    private static final long CACHE_EXPIRE_HOURS = 1;
 
     /**
-     * 根据用户ID查询用户信息（带缓存）
+     * 根据用户ID查询用户信息（不使用缓存）
      */
     public UserDTO getUserById(Long userId) {
         if (userId == null) {
             return null;
         }
 
-        // 1. 先查 Redis 缓存
-        String cacheKey = CACHE_PREFIX + userId;
-        UserDTO cached = (UserDTO) redisTemplate.opsForValue().get(cacheKey);
-
-        if (cached != null) {
-            log.debug("从缓存获取用户信息: userId={}", userId);
-            return cached;
-        }
-
-        // 2. 调用 Auth 服务
+        // 直接调用 Auth 服务
         try {
             String url = AUTH_SERVICE_URL + "/api/users/" + userId;
 
@@ -58,11 +45,7 @@ public class UserService {
 
             if (response.getBody() != null && response.getBody().getCode() == 0) {
                 UserDTO user = response.getBody().getData();
-
                 if (user != null) {
-                    // 3. 存入 Redis 缓存
-                    redisTemplate.opsForValue().set(cacheKey, user, CACHE_EXPIRE_HOURS, TimeUnit.HOURS);
-
                     log.debug("从 Auth 服务获取用户信息: userId={}", userId);
                     return user;
                 }
@@ -129,13 +112,5 @@ public class UserService {
         }
 
         return new ArrayList<>();
-    }
-
-    /**
-     * 清除用户缓存
-     */
-    public void clearUserCache(Long userId) {
-        String cacheKey = CACHE_PREFIX + userId;
-        redisTemplate.delete(cacheKey);
     }
 }
