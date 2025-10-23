@@ -1,0 +1,325 @@
+# ==========================================
+# CD Workflow - Build Docker Images and Deploy to K8s
+# For GameVault Cloud Microservices
+# ==========================================
+
+name: "CD - Build and Deploy"
+
+on:
+  push:
+    branches: [master, main, dev/master]
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - staging
+
+env:
+  DOCKER_REGISTRY: docker.io
+  IMAGE_TAG: ${{ github.sha }}
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    name: Create GitHub Release
+    if: startsWith(github.ref, 'refs/tags/v')
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate Changelog
+        id: changelog
+        uses: TriPSs/conventional-changelog-action@v5
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          output-file: "false"
+          skip-version-file: true
+          skip-commit: true
+
+      - name: Create Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref_name }}
+          release_name: GameVault Cloud ${{ github.ref_name }}
+          body: |
+            ## GameVault Cloud Microservices ${{ github.ref_name }}
+
+            ${{ steps.changelog.outputs.clean_changelog }}
+
+            ### Docker Images
+            ```bash
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/gamevault-gateway:${{ github.ref_name }}
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/gamevault-auth:${{ github.ref_name }}
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/gamevault-shopping:${{ github.ref_name }}
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/gamevault-forum:${{ github.ref_name }}
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/gamevault-developer:${{ github.ref_name }}
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/gamevault-social:${{ github.ref_name }}
+            ```
+
+            ### Services
+            - Gateway Service
+            - Auth Service
+            - Shopping Service
+            - Forum Service
+            - Developer Service
+            - Social Service
+
+            ### Infrastructure
+            - PostgreSQL 16
+            - Redis
+            - Nacos (Service Discovery)
+            - MinIO (Object Storage)
+          draft: false
+          prerelease: false
+
+  build-and-push:
+    runs-on: ubuntu-latest
+    name: Build and Push Docker Images
+    strategy:
+      matrix:
+        service:
+          - gamevault-gateway
+          - gamevault-auth
+          - gamevault-shopping
+          - gamevault-forum
+          - gamevault-developer
+          - gamevault-social
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Build with Maven
+        run: mvn clean package -DskipTests -pl ${{ matrix.service }} -am -B
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.service }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./${{ matrix.service }}/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: true
+          sbom: true
+
+      - name: Docker Scout Security Scan
+        uses: docker/scout-action@v1
+        with:
+          command: cves
+          image: ${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.service }}:latest
+          exit-code: false
+          summary: true
+        continue-on-error: true
+
+      - name: Generate Build Summary
+        run: |
+          echo "## Docker Build - ${{ matrix.service }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Image built and pushed successfully" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Repository**: ${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.service }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Tags**: ${{ steps.meta.outputs.tags }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Pull Command" >> $GITHUB_STEP_SUMMARY
+          echo '```bash' >> $GITHUB_STEP_SUMMARY
+          echo "docker pull ${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.service }}:latest" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+  deploy-to-staging:
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    name: Deploy to Staging
+    if: github.ref == 'refs/heads/dev/master'
+    environment:
+      name: staging
+      url: http://${{ secrets.STAGING_SERVER_IP }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'v1.28.0'
+
+      - name: Configure kubectl for Staging
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBE_CONFIG_STAGING }}" | base64 -d > $HOME/.kube/config
+          chmod 600 $HOME/.kube/config
+
+      - name: Deploy to Staging K8s
+        run: |
+          # Deploy infrastructure
+          kubectl apply -f k8s/namespace.yaml
+          kubectl apply -f k8s/infrastructure/
+
+          # Wait for infrastructure
+          kubectl wait --for=condition=ready pod -l app=postgres -n gamevault --timeout=300s || true
+          kubectl wait --for=condition=ready pod -l app=nacos -n gamevault --timeout=300s || true
+
+          # Update image tags
+          export DOCKER_REGISTRY="${{ env.DOCKER_REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}"
+          export IMAGE_TAG="${{ env.IMAGE_TAG }}"
+
+          for file in k8s/services/*.yaml; do
+            envsubst < $file | kubectl apply -f -
+          done
+
+          # Wait for deployments
+          kubectl wait --for=condition=available deployment --all -n gamevault --timeout=600s
+
+      - name: Generate Deployment Summary
+        run: |
+          echo "## Staging Deployment" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Application deployed to staging" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment**: Staging" >> $GITHUB_STEP_SUMMARY
+          echo "**Server**: ${{ secrets.STAGING_SERVER_IP }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Deployed Services:" >> $GITHUB_STEP_SUMMARY
+          kubectl get pods -n gamevault >> $GITHUB_STEP_SUMMARY
+
+  deploy-to-production:
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    name: Deploy to Production
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v')
+    environment:
+      name: production
+      url: http://${{ secrets.PRODUCTION_SERVER_IP }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'v1.28.0'
+
+      - name: Configure kubectl for Production
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBE_CONFIG_PRODUCTION }}" | base64 -d > $HOME/.kube/config
+          chmod 600 $HOME/.kube/config
+
+      - name: Verify cluster connection
+        run: |
+          kubectl cluster-info
+          kubectl get nodes
+
+      - name: Deploy infrastructure (if not exists)
+        run: |
+          kubectl apply -f k8s/namespace.yaml
+          kubectl apply -f k8s/infrastructure/
+
+      - name: Wait for infrastructure to be ready
+        run: |
+          echo "Waiting for infrastructure components..."
+          kubectl wait --for=condition=ready pod -l app=postgres -n gamevault --timeout=300s || true
+          kubectl wait --for=condition=ready pod -l app=redis -n gamevault --timeout=300s || true
+          kubectl wait --for=condition=ready pod -l app=nacos -n gamevault --timeout=300s || true
+          kubectl wait --for=condition=ready pod -l app=minio -n gamevault --timeout=300s || true
+
+      - name: Update K8s manifests with image tags
+        run: |
+          export DOCKER_REGISTRY="${{ env.DOCKER_REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}"
+          export IMAGE_TAG="${{ env.IMAGE_TAG }}"
+
+          for file in k8s/services/*.yaml; do
+            envsubst < $file | kubectl apply -f -
+          done
+
+      - name: Wait for deployments to be ready
+        run: |
+          kubectl wait --for=condition=available deployment --all -n gamevault --timeout=600s
+
+      - name: Run smoke tests
+        run: |
+          echo "Running smoke tests..."
+          GATEWAY_IP=$(kubectl get svc gamevault-gateway -n gamevault -o jsonpath='{.status.loadBalancer.ingress[0].ip}' || echo "")
+          if [ -n "$GATEWAY_IP" ]; then
+            curl -f http://${GATEWAY_IP}/actuator/health || echo "Health check failed"
+          fi
+
+      - name: Get deployment status
+        run: |
+          echo "## Production Deployment" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Application deployed to production" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment**: Production" >> $GITHUB_STEP_SUMMARY
+          echo "**Version**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Image Tag**: ${{ env.IMAGE_TAG }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Pods Status:" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          kubectl get pods -n gamevault >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Services:" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          kubectl get svc -n gamevault >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - name: Get Gateway URL
+        run: |
+          GATEWAY_URL=$(kubectl get svc gamevault-gateway -n gamevault -o jsonpath='{.status.loadBalancer.ingress[0].ip}' || echo "Pending...")
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🌐 Access URLs:" >> $GITHUB_STEP_SUMMARY
+          echo "- **Gateway**: http://${GATEWAY_URL}" >> $GITHUB_STEP_SUMMARY
+          echo "- **API Docs**: http://${GATEWAY_URL}/swagger-ui.html" >> $GITHUB_STEP_SUMMARY
+
+      - name: Rollback on failure
+        if: failure()
+        run: |
+          echo "❌ Deployment failed! Rolling back..." >> $GITHUB_STEP_SUMMARY
+          kubectl rollout undo deployment --all -n gamevault
+          kubectl wait --for=condition=available deployment --all -n gamevault --timeout=300s

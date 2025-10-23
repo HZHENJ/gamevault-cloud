@@ -1,0 +1,38 @@
+# ==========================================
+# Dockerfile for Social Service (with WebSocket)
+# ==========================================
+
+# Stage 1: Build
+FROM maven:3.9-eclipse-temurin-17 AS builder
+
+WORKDIR /app
+
+COPY pom.xml .
+COPY gamevault-common ./gamevault-common
+COPY gamevault-social ./gamevault-social
+
+RUN mvn clean package -DskipTests -pl gamevault-social -am
+
+# Stage 2: Runtime
+FROM eclipse-temurin:17-jre-alpine
+
+WORKDIR /app
+
+RUN apk add --no-cache curl
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
+COPY --from=builder /app/gamevault-social/target/*.jar app.jar
+
+RUN chown -R appuser:appgroup /app
+USER appuser
+
+EXPOSE 8089
+
+HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
+  CMD curl -f http://localhost:8089/actuator/health || exit 1
+
+ENTRYPOINT ["java", \
+    "-XX:+UseContainerSupport", \
+    "-XX:MaxRAMPercentage=75.0", \
+    "-Djava.security.egd=file:/dev/./urandom", \
+    "-jar", "app.jar"]
