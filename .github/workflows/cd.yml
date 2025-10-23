@@ -159,7 +159,7 @@ jobs:
         run: |
           echo "## Docker Build - ${{ matrix.service }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "✅ Image built and pushed successfully" >> $GITHUB_STEP_SUMMARY
+          echo "Image built and pushed successfully" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Repository**: ${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.service }}" >> $GITHUB_STEP_SUMMARY
           echo "**Tags**: ${{ steps.meta.outputs.tags }}" >> $GITHUB_STEP_SUMMARY

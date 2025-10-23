@@ -92,7 +92,7 @@ jobs:
         run: |
           echo "## Build Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "✅ Build completed successfully" >> $GITHUB_STEP_SUMMARY
+          echo "Build completed successfully" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Artifacts:" >> $GITHUB_STEP_SUMMARY
 
