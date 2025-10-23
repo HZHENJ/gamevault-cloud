@@ -1,10 +1,17 @@
+# ==============================
+# 基础文档和构建产物
+# ==============================
 HELP.md
 target/
 .mvn/
 !**/src/main/**/target/
 !**/src/test/**/target/
 
-### STS ###
+# ==============================
+# IDE / 工具缓存
+# ==============================
+
+### STS (Spring Tool Suite) ###
 .apt_generated
 .classpath
 .factorypath
@@ -14,7 +21,7 @@ target/
 .sts4-cache
 
 ### IntelliJ IDEA ###
-.idea
+.idea/
 *.iws
 *.iml
 *.ipr
@@ -33,8 +40,60 @@ build/
 ### VS Code ###
 .vscode/
 
-docker/postgres/data/
+### Mac 系统文件 ###
+.DS_Store
+
+# ==============================
+# Docker / 数据持久化
+# ==============================
+# 忽略容器运行产生的所有数据与日志
+docker/redis/
+docker/minio/
 docker/nacos/data/
 docker/nacos/logs/
+docker/postgres/data/
+docker/volumes/
+docker/tmp/
+docker/logs/
+docker/config/
+docker/cache/
+
+# 保留初始化 SQL 或脚本文件
+!docker/init/
+!docker/init/**
 !docker/postgres/init/
-.DS_Store
+!docker/postgres/init/**
+
+# 保留 docker-compose.yml
+!docker-compose.yml
+
+# ==============================
+# 环境与配置文件
+# ==============================
+
+# ==============================
+# 临时文件 / 锁文件 / 日志
+# ==============================
+*.log
+*.tmp
+*.bak
+*.swp
+*.swo
+*.pid
+*.lock
+
+# ==============================
+# Node / Frontend (若包含前端)
+# ==============================
+node_modules/
+dist/
+out/
+
+# ==============================
+# 打包文件
+# ==============================
+*.tar
+*.zip
+*.gz
+*.tgz
+*.7z
