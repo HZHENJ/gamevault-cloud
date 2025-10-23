@@ -1,6 +1,6 @@
 HELP.md
 target/
-.mvn/wrapper/maven-wrapper.jar
+.mvn/
 !**/src/main/**/target/
 !**/src/test/**/target/
 
@@ -20,6 +20,7 @@ target/
 *.ipr
 
 ### NetBeans ###
+.gitmodules
 /nbproject/private/
 /nbbuild/
 /dist/
