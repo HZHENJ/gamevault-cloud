@@ -1,0 +1,95 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: gamevault-forum
+
+  cloud:
+    nacos:
+      discovery:
+        server-addr: localhost:8848
+        namespace: dev
+        group: GAMEVAULT_GROUP
+      config:
+        enabled: false
+        import-check:
+          enabled: false
+
+  datasource:
+    url: jdbc:postgresql://localhost:12000/gamevault_forum
+    username: gamevault_user
+    password: gamevault_pass
+    driver-class-name: org.postgresql.Driver
+
+  data:
+#    redis:
+#      host: localhost
+#      database: 1
+#      port: 12003
+#      timeout: 3000ms
+#      lettuce:
+#        pool:
+#          max-active: 8
+#          max-idle: 8
+#          min-idle: 0
+#          max-wait: -1ms
+
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 10MB
+      enabled: true
+
+# MyBatis ??
+mybatis:
+  mapper-locations: classpath:forum/*.xml
+  type-aliases-package: com.sg.nusiss.forum.entity
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    lazy-loading-enabled: true
+    aggressive-lazy-loading: false
+
+# JWT ??????? Token?
+jwt:
+  secret: "1TuQdaZEWG0U7EiIkrGX1xvbaCJDT7XAsksekHxxFgE="
+  expiration: 864000000
+
+# HashId ??
+hashid:
+  salt: "forum-backend-2024"
+
+
+rsa:
+  public-key: classpath:certs/public.pem
+
+# ??????
+app:
+  upload:
+    path: uploads
+    max-file-size: 5MB
+    max-request-size: 10MB
+  pagination:
+    default-page-size: 20
+    max-page-size: 100
+
+auth:
+  mock:
+    enabled: false
+
+# Actuator ??
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,nacos-discovery
+  endpoint:
+    health:
+      show-details: always
+
+# ????
+logging:
+  level:
+    com.sg.nusiss.forum: DEBUG
+    com.sg.nusiss.forum.mapper: DEBUG

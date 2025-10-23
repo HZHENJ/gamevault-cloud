@@ -20,6 +20,7 @@
         <module>gamevault-social</module>
         <module>gamevault-shopping</module>
         <module>gamevault-developer</module>
+        <module>gamevault-forum</module>
     </modules>
 
     <!-- 版本管理 -->
