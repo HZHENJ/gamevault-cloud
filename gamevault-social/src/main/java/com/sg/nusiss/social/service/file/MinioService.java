@@ -5,6 +5,7 @@ import io.minio.*;
 import io.minio.http.Method;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -26,6 +27,8 @@ public class MinioService {
 
     private final MinioClient minioClient;
     private final MinioConfig minioConfig;
+    @Qualifier("publicMinioClient")
+    private final MinioClient publicMinioClient;
 
     /**
      * 检查存储桶是否存在，不存在则创建
@@ -104,7 +107,8 @@ public class MinioService {
         try {
             ensureBucketExists(bucketName);
 
-            String url = minioClient.getPresignedObjectUrl(
+            // ✅ 使用公网 client 生成 URL
+            String url = publicMinioClient.getPresignedObjectUrl(
                     GetPresignedObjectUrlArgs.builder()
                             .method(Method.PUT)
                             .bucket(bucketName)
@@ -113,10 +117,7 @@ public class MinioService {
                             .build()
             );
 
-            if (minioConfig.getPublicEndpoint() != null && !minioConfig.getPublicEndpoint().isEmpty()) {
-                url = url.replace(minioConfig.getEndpoint(), minioConfig.getPublicEndpoint());
-            }
-
+            log.debug("Generated presigned upload URL: {}", url);
             return url;
         } catch (Exception e) {
             log.error("Error generating presigned upload URL: {}/{}", bucketName, objectName, e);
@@ -129,7 +130,8 @@ public class MinioService {
      */
     public String generatePresignedDownloadUrl(String bucketName, String objectName, int expiresInMinutes) {
         try {
-            String url = minioClient.getPresignedObjectUrl(
+            // ✅ 使用公网 client 生成 URL，签名会包含正确的 host
+            String url = publicMinioClient.getPresignedObjectUrl(
                     GetPresignedObjectUrlArgs.builder()
                             .method(Method.GET)
                             .bucket(bucketName)
@@ -138,11 +140,7 @@ public class MinioService {
                             .build()
             );
 
-            if (minioConfig.getPublicEndpoint() != null && !minioConfig.getPublicEndpoint().isEmpty()) {
-                url = url.replace(minioConfig.getEndpoint(), minioConfig.getPublicEndpoint());
-                log.debug("Replaced endpoint in URL: {} -> {}", minioConfig.getEndpoint(), minioConfig.getPublicEndpoint());
-            }
-
+            log.debug("Generated presigned download URL: {}", url);
             return url;
         } catch (Exception e) {
             log.error("Error generating presigned download URL: {}/{}", bucketName, objectName, e);
@@ -212,7 +210,7 @@ public class MinioService {
 
             String partObjectName = objectName + ".part" + partNumber;
 
-            String url = minioClient.getPresignedObjectUrl(
+            String url = publicMinioClient.getPresignedObjectUrl(
                     GetPresignedObjectUrlArgs.builder()
                             .method(Method.PUT)
                             .bucket(bucketName)
@@ -221,10 +219,7 @@ public class MinioService {
                             .build()
             );
 
-            if (minioConfig.getPublicEndpoint() != null && !minioConfig.getPublicEndpoint().isEmpty()) {
-                url = url.replace(minioConfig.getEndpoint(), minioConfig.getPublicEndpoint());
-            }
-
+            log.debug("Generated presigned upload part URL for part {}: {}", partNumber, url);
             return url;
         } catch (Exception e) {
             log.error("Error generating presigned upload part URL: {}/{}, partNumber: {}",

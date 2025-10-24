@@ -73,4 +73,17 @@ public class MinioConfig {
                 .credentials(accessKey, secretKey)
                 .build();
     }
+
+    @Bean("publicMinioClient")
+    public MinioClient publicMinioClient() {
+        // 如果配置了 publicEndpoint，用它生成预签名 URL
+        String endpointToUse = (publicEndpoint != null && !publicEndpoint.isEmpty())
+                ? publicEndpoint
+                : endpoint;
+
+        return MinioClient.builder()
+                .endpoint(endpointToUse)
+                .credentials(accessKey, secretKey)
+                .build();
+    }
 }
