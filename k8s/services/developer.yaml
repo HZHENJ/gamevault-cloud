@@ -38,13 +38,13 @@ spec:
           value: "nacos:8848"
         - name: SPRING_CLOUD_NACOS_DISCOVERY_NAMESPACE
           value: "prod"
-        resources:
-          requests:
-            memory: "512Mi"
-            cpu: "250m"
-          limits:
-            memory: "1Gi"
-            cpu: "500m"
+#        resources:
+#          requests:
+#            memory: "512Mi"
+#            cpu: "250m"
+#          limits:
+#            memory: "1Gi"
+#            cpu: "500m"
 #        livenessProbe:
 #          httpGet:
 #            path: /actuator/health
