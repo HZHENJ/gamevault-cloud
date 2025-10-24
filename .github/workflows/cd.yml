@@ -200,18 +200,50 @@ jobs:
           kubectl cluster-info
           kubectl get nodes
 
-      - name: Deploy infrastructure (if not exists)
+      - name: Deploy namespace
         run: |
           kubectl apply -f k8s/namespace.yaml
-          kubectl apply -f k8s/infrastructure/
+
+      - name: Deploy infrastructure
+        run: |
+          echo "Deploying infrastructure components..."
+          kubectl apply -f k8s/infrastructure/postgres.yaml
+          kubectl apply -f k8s/infrastructure/redis.yaml
+          kubectl apply -f k8s/infrastructure/nacos.yaml
+          kubectl apply -f k8s/infrastructure/minio.yaml
 
       - name: Wait for infrastructure to be ready
         run: |
           echo "Waiting for infrastructure components..."
-          kubectl wait --for=condition=ready pod -l app=postgres -n gamevault --timeout=300s || true
-          kubectl wait --for=condition=ready pod -l app=redis -n gamevault --timeout=300s || true
-          kubectl wait --for=condition=ready pod -l app=nacos -n gamevault --timeout=300s || true
-          kubectl wait --for=condition=ready pod -l app=minio -n gamevault --timeout=300s || true
+          echo "Waiting for PostgreSQL..."
+          kubectl wait --for=condition=ready pod -l app=postgres -n gamevault --timeout=300s
+          echo "Waiting for Redis..."
+          kubectl wait --for=condition=ready pod -l app=redis -n gamevault --timeout=300s
+          echo "Waiting for Nacos..."
+          kubectl wait --for=condition=ready pod -l app=nacos -n gamevault --timeout=300s 
+          echo "Waiting for MinIO..."
+          kubectl wait --for=condition=ready pod -l app=minio -n gamevault --timeout=300s
+          echo "All infrastructure components are ready!"
+
+      - name: Initialize PostgreSQL databases
+        run: |
+          echo "Initializing PostgreSQL databases..."
+          
+          # 删除旧的 Init Job（如果存在）
+          kubectl delete job postgres-init -n gamevault --ignore-not-found=true
+          
+          # 应用 Init Job
+          kubectl apply -f k8s/infrastructure/postgres-init-job.yaml
+          
+          # 等待 Job 完成
+          echo "Waiting for database initialization..."
+          kubectl wait --for=condition=complete job/postgres-init -n gamevault --timeout=120s
+          
+          # 查看日志
+          echo "Database initialization logs:"
+          kubectl logs -n gamevault -l job-name=postgres-init --tail=50
+          
+          echo "Database initialization complete!"
 
       - name: Deploy services to K8s
         run: |
@@ -232,28 +264,11 @@ jobs:
            kubectl apply -f -
           done
 
-#      - name: Update K8s manifests with image tags
-#        run: |
-#          export DOCKER_REGISTRY="${{ secrets.DOCKERHUB_USERNAME }}"
-#          export IMAGE_TAG="${{ env.IMAGE_TAG }}"
-#
-#          echo "Deploying with:"
-#          echo "  DOCKER_REGISTRY: $DOCKER_REGISTRY"
-#          echo "  IMAGE_TAG: $IMAGE_TAG"
-#
-#          # 安装 envsubst（如果没有的话）
-#          sudo apt-get update && sudo apt-get install -y gettext-base
-#
-#          # 为每个服务文件应用替换
-#          for file in k8s/services/*.yaml; do
-#            echo "Processing $file..."
-#            envsubst < "$file" > /tmp/$(basename "$file")
-#            kubectl apply -f /tmp/$(basename "$file")
-#          done
-
       - name: Wait for deployments to be ready
         run: |
+          echo "Waiting for all services to be ready..."
           kubectl wait --for=condition=available deployment --all -n gamevault --timeout=600s
+          echo "All services are ready!"
 
       - name: Run smoke tests
         run: |

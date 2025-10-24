@@ -28,7 +28,7 @@ spec:
 
             # 数据库配置
             - name: SPRING_DATASOURCE_URL
-              value: "jdbc:postgresql://postgres:5432/gamevault_auth"
+              value: "jdbc:postgresql://postgres:5432/gamevault_social"
             - name: SPRING_DATASOURCE_USERNAME
               value: "gamevault_user"
             - name: SPRING_DATASOURCE_PASSWORD
