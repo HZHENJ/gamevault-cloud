@@ -46,8 +46,8 @@ public class MessageController {
     @GetMapping("/{conversationId}")
     public BaseResponse<List<MessageResponse>> getMessages(
             @PathVariable(value = "conversationId") Long conversationId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "50") int size) {
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "50") int size) {
 
         Long currentUserId = SecurityUtils.getCurrentUserId();
         List<MessageResponse> messages = messageService.getMessages(conversationId, currentUserId, page, size);
@@ -70,8 +70,8 @@ public class MessageController {
     @GetMapping("/private/{friendId}")
     public BaseResponse<List<MessageResponse>> getPrivateMessages(
             @PathVariable(value = "friendId") Long friendId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "50") int size) {
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "50") int size) {
 
         Long currentUserId = SecurityUtils.getCurrentUserId();
         List<MessageResponse> messages = privateMessageService.getPrivateMessages(

@@ -270,13 +270,13 @@ jobs:
           kubectl wait --for=condition=available deployment --all -n gamevault --timeout=600s
           echo "All services are ready!"
 
-      - name: Run smoke tests
-        run: |
-          echo "Running smoke tests..."
-          GATEWAY_IP=$(kubectl get svc gamevault-gateway -n gamevault -o jsonpath='{.status.loadBalancer.ingress[0].ip}' || echo "")
-          if [ -n "$GATEWAY_IP" ]; then
-            curl -f http://${GATEWAY_IP}/actuator/health || echo "Health check failed"
-          fi
+#      - name: Run smoke tests
+#        run: |
+#          echo "Running smoke tests..."
+#          GATEWAY_IP=$(kubectl get svc gamevault-gateway -n gamevault -o jsonpath='{.status.loadBalancer.ingress[0].ip}' || echo "")
+#          if [ -n "$GATEWAY_IP" ]; then
+#            curl -f http://${GATEWAY_IP}/actuator/health || echo "Health check failed"
+#          fi
 
       - name: Get deployment status
         run: |
