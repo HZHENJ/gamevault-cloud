@@ -233,7 +233,6 @@ jobs:
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v')
     environment:
       name: production
-      url: http://${{ secrets.PRODUCTION_SERVER_IP }}
 
     steps:
       - name: Checkout code
