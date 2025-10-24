@@ -135,18 +135,9 @@ jobs:
 
       - name: Extract metadata
         id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.service }}
-          tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=sha,prefix={{branch}}-
-            type=raw,value=latest,enable={{is_default_branch}}
-          flavor: |
-            latest=auto
+        run: |
+          IMAGE_TAGS="${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.service }}:prod-master,${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.service }}:${{ github.sha }}"
+          echo "tags=$IMAGE_TAGS" >> $GITHUB_OUTPUT
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
@@ -154,13 +145,13 @@ jobs:
           context: .
           file: ./${{ matrix.service }}/Dockerfile
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.service }}:prod-master
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.service }}:${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=${{ github.repository }}
           platforms: linux/amd64
-          pull: false
-          cache-from: |
-            type=gha
-            ${{ steps.check_image.outputs.exists == 'true' && format('type=registry,ref={0}/{1}:latest', secrets.DOCKERHUB_USERNAME, matrix.service) || 'type=gha' }}
+          cache-from: type=gha
           cache-to: type=gha,mode=max
 
       - name: Docker Scout Security Scan
