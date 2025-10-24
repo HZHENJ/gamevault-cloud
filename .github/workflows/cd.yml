@@ -23,7 +23,7 @@ on:
 
 env:
   DOCKER_REGISTRY: docker.io
-  IMAGE_TAG: ${{ github.sha }}
+  IMAGE_TAG: latest
 
 #
 jobs:
@@ -216,7 +216,7 @@ jobs:
       - name: Update K8s manifests with image tags
         run: |
           export DOCKER_REGISTRY="${{ env.DOCKER_REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}"
-          export IMAGE_TAG="latest" 
+          export IMAGE_TAG="${{ env.IMAGE_TAG }}"
 
           for file in k8s/services/*.yaml; do
             envsubst < $file | kubectl apply -f -
