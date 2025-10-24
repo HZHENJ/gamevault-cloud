@@ -122,6 +122,11 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: Pre-pull base images (avoid Docker Hub rate limit)
+        run: |
+          docker pull maven:3.9-eclipse-temurin-17
+          docker pull eclipse-temurin:17-jre-alpine
+
       - name: Check if image exists in registry
         id: check_image
         continue-on-error: true
