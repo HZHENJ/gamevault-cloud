@@ -5,7 +5,7 @@ RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 COPY gamevault-social/target/*.jar app.jar
 RUN chown -R appuser:appgroup /app
 USER appuser
-EXPOSE 8082
+EXPOSE 8089
 HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
-  CMD curl -f http://localhost:8082/actuator/health || exit 1
+    CMD curl -f http://localhost:8089/actuator/health || exit 1
 ENTRYPOINT ["java", "-jar", "app.jar"]

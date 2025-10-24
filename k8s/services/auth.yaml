@@ -1,5 +1,3 @@
----
-# Auth Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -18,52 +16,66 @@ spec:
         app: gamevault-auth
     spec:
       containers:
-      - name: auth
-        image: ${DOCKER_REGISTRY}/gamevault-auth:${IMAGE_TAG}
-        imagePullPolicy: Always
-        ports:
-        - containerPort: 8081
-          name: http
-        env:
-        - name: SPRING_PROFILES_ACTIVE
-          value: "prod"
-        - name: SPRING_DATASOURCE_URL
-          value: "jdbc:postgresql://postgres:5432/gamevault_auth"
-        - name: SPRING_DATASOURCE_USERNAME
-          value: "gamevault_user"
-        - name: SPRING_DATASOURCE_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: postgres-secret
-              key: POSTGRES_PASSWORD
-        - name: SPRING_CLOUD_NACOS_DISCOVERY_SERVER_ADDR
-          value: "nacos:8848"
-        - name: SPRING_CLOUD_NACOS_DISCOVERY_NAMESPACE
-          value: "prod"
-#        resources:
-#          requests:
-#            memory: "512Mi"
-#            cpu: "250m"
-#          limits:
-#            memory: "1Gi"
-#            cpu: "500m"
-#        livenessProbe:
-#          httpGet:
-#            path: /actuator/health
-#            port: 8081
-#          initialDelaySeconds: 60
-#          periodSeconds: 10
-#          timeoutSeconds: 5
-#        readinessProbe:
-#          httpGet:
-#            path: /actuator/health
-#            port: 8081
-#          initialDelaySeconds: 30
-#          periodSeconds: 10
-#          timeoutSeconds: 5
+        - name: auth
+          image: ${DOCKER_REGISTRY}/gamevault-auth:${IMAGE_TAG}
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8081
+              name: http
+          env:
+            # Spring Profile - 激活生产环境配置
+            - name: SPRING_PROFILES_ACTIVE
+              value: "prod"
 
+            # 数据库配置
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:postgresql://postgres:5432/gamevault_auth"
+            - name: SPRING_DATASOURCE_USERNAME
+              value: "gamevault_user"
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_PASSWORD
+
+            # Nacos 配置
+            - name: SPRING_CLOUD_NACOS_DISCOVERY_SERVER_ADDR
+              value: "nacos:8848"
+            - name: SPRING_CLOUD_NACOS_DISCOVERY_NAMESPACE
+              value: "prod"
+
+            # Pod IP（用于 Nacos 注册）
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
+
+#          livenessProbe:
+#            httpGet:
+#              path: /actuator/health
+#              port: 8081
+#            initialDelaySeconds: 90
+#            periodSeconds: 10
+#            timeoutSeconds: 5
+#            failureThreshold: 3
+#
+#          readinessProbe:
+#            httpGet:
+#              path: /actuator/health
+#              port: 8081
+#            initialDelaySeconds: 60
+#            periodSeconds: 10
+#            timeoutSeconds: 5
+#            failureThreshold: 3
 ---
-# Auth Service
 apiVersion: v1
 kind: Service
 metadata:
@@ -74,15 +86,13 @@ metadata:
 spec:
   type: ClusterIP
   ports:
-  - port: 8081
-    targetPort: 8081
-    protocol: TCP
-    name: http
+    - port: 8081
+      targetPort: 8081
+      protocol: TCP
+      name: http
   selector:
     app: gamevault-auth
-
 ---
-# Auth HPA
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
@@ -93,12 +103,12 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: gamevault-auth
-  minReplicas: 2
-  maxReplicas: 5
+  minReplicas: 1
+  maxReplicas: 3
   metrics:
-  - type: Resource
-    resource:
-      name: cpu
-      target:
-        type: Utilization
-        averageUtilization: 70
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70

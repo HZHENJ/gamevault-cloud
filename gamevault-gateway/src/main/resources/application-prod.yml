@@ -1,0 +1,122 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: gamevault-gateway
+
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${SPRING_CLOUD_NACOS_DISCOVERY_SERVER_ADDR:nacos:8848}
+        namespace: ${SPRING_CLOUD_NACOS_DISCOVERY_NAMESPACE:prod}
+        group: GAMEVAULT_GROUP
+        enabled: true
+        register-enabled: true
+        ip: ${POD_IP:}
+      config:
+        enabled: false
+      import-check:
+        enabled: false
+
+    gateway:
+      # 路由配置 - 保持前端接口完全不变
+      routes:
+        # ==================== 认证服务 ====================
+        - id: auth-service
+          uri: lb://gamevault-auth
+          predicates:
+            - Path=/api/auth/**, /.well-known/jwks.json, /api/settings/**
+          filters:
+            - StripPrefix=0
+
+        # ==================== Shopping 服务 ====================
+        - id: shopping-service
+          uri: lb://gamevault-shopping
+          predicates:
+            - Path=/api/games/**,/api/library/**,/api/cart/**,/api/orders/**,/api/admin/games/**,/api/user/activation-codes/**
+          filters:
+            - StripPrefix=0
+
+        - id: developer-service
+          uri: lb://gamevault-developer
+          predicates:
+            - Path=/api/developer/**
+          filters:
+            - StripPrefix=0
+
+        # ==================== WebSocket 服务（独立配置，优先匹配）====================
+        - id: social-websocket
+          uri: lb:ws://gamevault-social
+          predicates:
+            - Path=/ws/info/**,/ws/**
+          filters:
+            - StripPrefix=0
+
+        # ==================== Social 服务 ====================
+        - id: social-service
+          uri: lb://gamevault-social
+          predicates:
+            - Path=/api/conversation/**,/api/friend/**,/api/message/**,/api/file/**
+          filters:
+            - StripPrefix=0
+
+        # ==================== 论坛服务 ====================
+        - id: forum-service
+          uri: lb://gamevault-forum
+          predicates:
+            - Path=/api/forum/**
+          filters:
+            - StripPrefix=0
+
+        # ==================== 个人资料服务 ====================
+        - id: profile-service
+          uri: lb://gamevault-profile
+          predicates:
+            - Path=/api/settings/**,/api/profile/**
+          filters:
+            - StripPrefix=0
+
+      # 全局跨域配置 - 生产环境需要修改允许的源
+      globalcors:
+        add-to-simple-url-handler-mapping: true
+        corsConfigurations:
+          '[/api/**]':
+            allowedOriginPatterns:
+              - "http://localhost:3000"
+              - "http://127.0.0.1:3000"
+              - "http://localhost:3001"
+              - "http://127.0.0.1:3001"
+              # 生产环境添加你的前端域名或 IP
+              # - "http://YOUR_FRONTEND_URL"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+              - PATCH
+            allowedHeaders: "*"
+            allowCredentials: true
+            maxAge: 3600
+
+# Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,gateway,routes,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
+
+# 日志 - 生产环境
+logging:
+  level:
+    org.springframework.cloud.gateway: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: /app/logs/gamevault-gateway.log
+#    max-size: 10MB
+#    max-history: 30

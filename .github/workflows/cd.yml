@@ -213,14 +213,43 @@ jobs:
           kubectl wait --for=condition=ready pod -l app=nacos -n gamevault --timeout=300s || true
           kubectl wait --for=condition=ready pod -l app=minio -n gamevault --timeout=300s || true
 
-      - name: Update K8s manifests with image tags
+      - name: Deploy services to K8s
         run: |
-          export DOCKER_REGISTRY="${{ env.DOCKER_REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}"
-          export IMAGE_TAG="${{ env.IMAGE_TAG }}"
-
-          for file in k8s/services/*.yaml; do
-            envsubst < $file | kubectl apply -f -
+          DOCKER_REGISTRY="${{ secrets.DOCKERHUB_USERNAME }}"
+          IMAGE_TAG="${{ env.IMAGE_TAG }}"
+          
+          echo "Deploying with:"
+          echo "  DOCKER_REGISTRY: $DOCKER_REGISTRY"
+          echo "  IMAGE_TAG: $IMAGE_TAG"
+          
+          # 直接部署服务
+          cd k8s/services
+          for service_file in *.yaml; do
+          echo "Deploying $service_file..."
+          cat "$service_file" | \
+           sed "s|\${DOCKER_REGISTRY}|$DOCKER_REGISTRY|g" | \
+           sed "s|\${IMAGE_TAG}|$IMAGE_TAG|g" | \
+           kubectl apply -f -
           done
+
+#      - name: Update K8s manifests with image tags
+#        run: |
+#          export DOCKER_REGISTRY="${{ secrets.DOCKERHUB_USERNAME }}"
+#          export IMAGE_TAG="${{ env.IMAGE_TAG }}"
+#
+#          echo "Deploying with:"
+#          echo "  DOCKER_REGISTRY: $DOCKER_REGISTRY"
+#          echo "  IMAGE_TAG: $IMAGE_TAG"
+#
+#          # 安装 envsubst（如果没有的话）
+#          sudo apt-get update && sudo apt-get install -y gettext-base
+#
+#          # 为每个服务文件应用替换
+#          for file in k8s/services/*.yaml; do
+#            echo "Processing $file..."
+#            envsubst < "$file" > /tmp/$(basename "$file")
+#            kubectl apply -f /tmp/$(basename "$file")
+#          done
 
       - name: Wait for deployments to be ready
         run: |

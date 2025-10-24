@@ -1,0 +1,95 @@
+server:
+  port: 8084
+
+spring:
+  application:
+    name: gamevault-developer
+
+  cloud:
+    compatibility-verifier:
+      enabled: false
+    nacos:
+      discovery:
+        server-addr: ${SPRING_CLOUD_NACOS_DISCOVERY_SERVER_ADDR:nacos:8848}
+        namespace: ${SPRING_CLOUD_NACOS_DISCOVERY_NAMESPACE:prod}
+        group: GAMEVAULT_GROUP
+        enabled: true
+        register-enabled: true
+        ip: ${POD_IP:}
+      config:
+        enabled: false
+      import-check:
+        enabled: false
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: http://gamevault-auth:8081/.well-known/jwks.json
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://postgres:5432/gamevault_developer}
+    username: ${SPRING_DATASOURCE_USERNAME:gamevault_user}
+    password: ${SPRING_DATASOURCE_PASSWORD:gamevault_pass}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
+      idle-timeout: 600000
+
+  servlet:
+    multipart:
+      max-file-size: 1000MB
+      max-request-size: 1000MB
+      enabled: true
+
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:redis}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+      database: 0
+      timeout: 2000
+
+# MyBatis 配置
+mybatis:
+  mapper-locations: classpath:mapper/**/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+
+# 应用配置
+app:
+  asset-base-url: ${ASSET_BASE_URL:http://52.77.169.8:8084}
+  asset-storage-path: /app/game-assets
+  upload:
+    path: /app/uploads
+    max-file-size: 1000MB
+    max-request-size: 1000MB
+  pagination:
+    default-page-size: 20
+    max-page-size: 100
+
+# Actuator 配置
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
+
+# 日志配置
+logging:
+  level:
+    com.sg.nusiss.developer: INFO
+    org.springframework.web: INFO
+    org.springframework.security: INFO
+    org.springframework.security.oauth2: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: /app/logs/gamevault-developer.log
+#    max-size: 10MB
+#    max-history: 30

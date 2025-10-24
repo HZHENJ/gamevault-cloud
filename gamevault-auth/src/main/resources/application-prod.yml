@@ -1,0 +1,78 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: gamevault-auth
+
+  # 数据源配置 - 生产环境从环境变量读取
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://postgres:5432/gamevault_auth}
+    username: ${SPRING_DATASOURCE_USERNAME:gamevault_user}
+    password: ${SPRING_DATASOURCE_PASSWORD:gamevault_pass}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      connection-timeout: 30000
+
+  # JPA 配置
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: update
+    show-sql: false  # 生产环境关闭 SQL 日志
+    properties:
+      hibernate:
+        format_sql: false
+
+  # Nacos 注册中心 - 生产环境
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${SPRING_CLOUD_NACOS_DISCOVERY_SERVER_ADDR:nacos:8848}
+        namespace: ${SPRING_CLOUD_NACOS_DISCOVERY_NAMESPACE:prod}
+        group: GAMEVAULT_GROUP
+        enabled: true
+        register-enabled: true
+        ip: ${POD_IP:}
+      config:
+        server-addr: ${SPRING_CLOUD_NACOS_CONFIG_SERVER_ADDR:nacos:8848}
+        namespace: ${SPRING_CLOUD_NACOS_CONFIG_NAMESPACE:prod}
+        group: GAMEVAULT_GROUP
+        file-extension: yml
+        enabled: false
+      import-check:
+        enabled: false
+
+# RSA 密钥配置
+rsa:
+  private-key: classpath:certs/rsa-private.pem
+  public-key: classpath:certs/rsa-public.pem
+
+# JWT 配置
+app:
+  jwt:
+    expiration-minutes: 120
+
+# Actuator 配置
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
+
+# 日志配置 - 生产环境
+logging:
+  level:
+    com.sg.nusiss.auth: INFO
+    org.springframework.security: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: /app/logs/gamevault-auth.log
+    max-size: 10MB
+    max-history: 30

@@ -1,0 +1,93 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: gamevault-shopping
+
+  cloud:
+    compatibility-verifier:
+      enabled: false
+    nacos:
+      discovery:
+        server-addr: ${SPRING_CLOUD_NACOS_DISCOVERY_SERVER_ADDR:nacos:8848}
+        namespace: ${SPRING_CLOUD_NACOS_DISCOVERY_NAMESPACE:prod}
+        group: GAMEVAULT_GROUP
+        enabled: true
+        register-enabled: true
+        ip: ${POD_IP:}
+      config:
+        enabled: false
+      import-check:
+        enabled: false
+
+  # OAuth2 资源服务器 - JWT 验证
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://gamevault-auth:8081
+          jwk-set-uri: http://gamevault-auth:8081/.well-known/jwks.json
+
+  # 数据源配置
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://postgres:5432/gamevault_shopping}
+    username: ${SPRING_DATASOURCE_USERNAME:gamevault_user}
+    password: ${SPRING_DATASOURCE_PASSWORD:gamevault_pass}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      connection-timeout: 30000
+
+  # JPA 配置
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+
+  # 文件上传配置
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 100MB
+      enabled: true
+
+# 激活码库存配置
+activation:
+  stock:
+    target: 30
+
+# 应用配置
+app:
+  upload:
+    path: uploads
+    max-file-size: 100MB
+    max-request-size: 100MB
+  pagination:
+    default-page-size: 20
+    max-page-size: 100
+
+# Actuator 配置
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
+
+# 日志配置
+logging:
+  level:
+    com.sg.nusiss.shopping: INFO
+    org.springframework.web: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: /app/logs/gamevault-shopping.log
