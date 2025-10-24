@@ -7,7 +7,7 @@ metadata:
   labels:
     app: gamevault-developer
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: gamevault-developer
