@@ -105,7 +105,8 @@ ip-xxx     Ready    control-plane,master   1m    v1.28.x+k3s1
 
 ```bash
 # 在EC2上执行
-sudo cat /etc/rancher/k3s/k3s.yaml | sed "s/127.0.0.1/<YOUR_EC2_PUBLIC_IP>/g" | base64 -w 0
+#sudo cat /etc/rancher/k3s/k3s.yaml | sed "s/127.0.0.1/<YOUR_EC2_PUBLIC_IP>/g" | base64 -w 0
+sudo cat /etc/rancher/k3s/k3s.yaml | sed "s/127.0.0.1/52.77.169.8/g" | base64 -w 0
 ```
 
 复制输出的base64字符串

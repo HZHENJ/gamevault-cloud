@@ -7,9 +7,9 @@ name: "CI - Build and Test"
 
 on:
   push:
-    branches: [dev/master, master, main]
+    branches: [prod/master, master, main]
   pull_request:
-    branches: [dev/master, master, main]
+    branches: [prod/master, master, main]
 
 env:
   JAVA_VERSION: '17'
