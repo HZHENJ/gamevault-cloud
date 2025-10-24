@@ -71,7 +71,7 @@ jobs:
         run: mvn dependency:go-offline -B
 
       - name: Build with Maven
-        run: mvn clean compile -B
+        run: mvn clean compile -B -Dmaven.compiler.parameters=true
 
       - name: Run Unit Tests
         run: mvn test -B
@@ -87,7 +87,7 @@ jobs:
         continue-on-error: true
 
       - name: Package Application
-        run: mvn package -DskipTests -B
+        run: mvn package -DskipTests -B -Dmaven.compiler.parameters=true
 
       - name: Generate Build Summary
         run: |
