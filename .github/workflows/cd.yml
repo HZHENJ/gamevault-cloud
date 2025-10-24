@@ -88,6 +88,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Build and Push Docker Images
     strategy:
+      fail-fast: false
       matrix:
         service:
           - gamevault-gateway
@@ -120,6 +121,18 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: Check if image exists in registry
+        id: check_image
+        continue-on-error: true
+        run: |
+          if docker manifest inspect ${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.service }}:latest > /dev/null 2>&1; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "Image exists in registry, will use as cache"
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "ℹImage does not exist in registry, building from scratch"
+          fi
+
       - name: Extract metadata
         id: meta
         uses: docker/metadata-action@v5
@@ -141,11 +154,12 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
           platforms: linux/amd64
-          # provenance: false
-          # sbom: false
+          pull: false
+          cache-from: |
+            type=gha
+            ${{ steps.check_image.outputs.exists == 'true' && format('type=registry,ref={0}/{1}:latest', secrets.DOCKERHUB_USERNAME, matrix.service) || '' }}
+          cache-to: type=gha,mode=max
 
       - name: Docker Scout Security Scan
         uses: docker/scout-action@v1
