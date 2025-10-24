@@ -7,10 +7,10 @@ FROM maven:3.9-eclipse-temurin-17 AS builder
 
 WORKDIR /app
 
-COPY pom.xml .
-COPY gamevault-common ./gamevault-common
-COPY gamevault-auth ./gamevault-auth
+# 复制整个项目
+COPY . .
 
+# 构建
 RUN mvn clean package -DskipTests -pl gamevault-auth -am
 
 # Stage 2: Runtime

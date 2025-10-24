@@ -7,17 +7,11 @@ FROM maven:3.9-eclipse-temurin-17 AS builder
 
 WORKDIR /app
 
-# Copy parent pom
-COPY pom.xml .
+# 复制整个项目
+COPY . .
 
-# Copy common module
-COPY gamevault-common ./gamevault-common
-
-# Copy gateway module
-COPY gamevault-gateway ./gamevault-gateway
-
-# Build the application
-RUN mvn clean package -DskipTests -pl gamevault-gateway -am
+# 构建
+RUN mvn clean package -DskipTests -pl gamevault-auth -am
 
 # Stage 2: Runtime
 FROM eclipse-temurin:17-jre-alpine
