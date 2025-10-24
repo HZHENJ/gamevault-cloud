@@ -32,7 +32,7 @@ WORKDIR /app
 RUN apk add --no-cache curl
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
-COPY gamevault-social/target/*.jar app.jar
+COPY --from=build /app/gamevault-social/target/*.jar app.jar
 
 RUN chown -R appuser:appgroup /app
 
