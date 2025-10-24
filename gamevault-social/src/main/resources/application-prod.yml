@@ -69,7 +69,8 @@ minio:
   # 内部服务间通信地址
   endpoint: http://minio:9000
   # 外部访问地址（返回给前端的 URL）- 请替换为你的 EC2 公网 IP
-  public-endpoint: ${MINIO_PUBLIC_ENDPOINT:http://52.77.169.8:9000}
+  public-endpoint: ${MINIO_PUBLIC_ENDPOINT:http://52.77.169.8:30900}
+#  public-endpoint: http://52.77.169.8:30900
   access-key: ${MINIO_ACCESS_KEY:minioadmin}
   secret-key: ${MINIO_SECRET_KEY:minioadmin123}
   bucket-name: gamevault-chat

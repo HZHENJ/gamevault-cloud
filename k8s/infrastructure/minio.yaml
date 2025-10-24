@@ -114,6 +114,31 @@ spec:
     app: minio
 
 ---
+# 用于外部访问 MinIO API 和 Console
+apiVersion: v1
+kind: Service
+metadata:
+  name: minio-external
+  namespace: gamevault
+  labels:
+    app: minio
+spec:
+  type: NodePort
+  ports:
+    - port: 9000
+      targetPort: 9000
+      nodePort: 30900
+      protocol: TCP
+      name: api
+    - port: 9001
+      targetPort: 9001
+      nodePort: 30901
+      protocol: TCP
+      name: console
+  selector:
+    app: minio
+
+---
 # MinIO Init Job - Create buckets
 apiVersion: batch/v1
 kind: Job
@@ -163,5 +188,30 @@ spec:
           mc anonymous set download myminio/gamevault-audios
           mc anonymous set download myminio/gamevault-chat
 
-          echo "MinIO buckets created successfully!"
+          echo "Configuring CORS for all buckets..."
+          
+          for bucket in gamevault-images gamevault-videos gamevault-files gamevault-audios gamevault-chat; do
+            echo "Setting CORS for $bucket..."
+            cat > /tmp/cors-${bucket}.json <<CORS_EOF
+          {
+            "CORSRules": [
+              {
+                "AllowedOrigins": ["*"],
+                "AllowedMethods": ["GET", "HEAD", "PUT", "POST"],
+                "AllowedHeaders": ["*"],
+                "ExposeHeaders": ["ETag", "Content-Length"],
+                "MaxAgeSeconds": 3600
+              }
+            ]
+          }
+          CORS_EOF
+          
+            mc anonymous set-json /tmp/cors-${bucket}.json myminio/${bucket} || echo "Warning: CORS config for ${bucket} failed"
+          done
+          
+          echo "MinIO initialization complete!"
+          echo "Listing all buckets:"
           mc ls myminio
+          
+          echo "Verifying CORS configuration:"
+          mc anonymous get-json myminio/gamevault-images || echo "Could not retrieve CORS config"

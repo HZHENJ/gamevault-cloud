@@ -51,7 +51,7 @@ spec:
 
             # MinIO 配置 - 关键！
             - name: MINIO_PUBLIC_ENDPOINT
-              value: "http://52.77.169.8:9000"
+              value: "http://52.77.169.8:30900"
             - name: MINIO_ACCESS_KEY
               valueFrom:
                 secretKeyRef:

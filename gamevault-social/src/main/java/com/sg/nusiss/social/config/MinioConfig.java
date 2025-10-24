@@ -24,6 +24,11 @@ public class MinioConfig {
     private String endpoint;
 
     /**
+     * MinIO 公网访问端点
+     */
+    private String publicEndpoint;
+
+    /**
      * 访问密钥
      */
     private String accessKey;
