@@ -5,6 +5,10 @@ spring:
   application:
     name: gamevault-auth
 
+  web:
+    resources:
+      static-locations: file:/app/uploads/,classpath:/static/
+
   # 数据源配置 - 生产环境从环境变量读取
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://postgres:5432/gamevault_auth}
