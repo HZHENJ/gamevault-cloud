@@ -26,7 +26,7 @@ spec:
         - name: SPRING_PROFILES_ACTIVE
           value: "prod"
         - name: SPRING_DATASOURCE_URL
-          value: "jdbc:postgresql://postgres:5432/gamevault_auth"
+          value: "jdbc:postgresql://postgres:5432/gamevault_developer"
         - name: SPRING_DATASOURCE_USERNAME
           value: "gamevault_user"
         - name: SPRING_DATASOURCE_PASSWORD
@@ -38,6 +38,8 @@ spec:
           value: "nacos:8848"
         - name: SPRING_CLOUD_NACOS_DISCOVERY_NAMESPACE
           value: "prod"
+        - name: SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI
+          value: "http://gamevault-auth:8081/.well-known/jwks.json"
 #        resources:
 #          requests:
 #            memory: "512Mi"

@@ -37,6 +37,28 @@ stringData:
   POSTGRES_PASSWORD: gamevault_pass  # Change this in production!
 
 ---
+# PostgreSQL Init Script ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-init-script
+  namespace: gamevault
+data:
+  01-init-databases.sql: |
+    -- Create all required databases for GameVault microservices
+    CREATE DATABASE gamevault_social;
+    CREATE DATABASE gamevault_forum;
+    CREATE DATABASE gamevault_developer;
+    CREATE DATABASE gamevault_shopping;
+
+    -- Grant privileges to gamevault_user
+    GRANT ALL PRIVILEGES ON DATABASE gamevault_auth TO gamevault_user;
+    GRANT ALL PRIVILEGES ON DATABASE gamevault_social TO gamevault_user;
+    GRANT ALL PRIVILEGES ON DATABASE gamevault_forum TO gamevault_user;
+    GRANT ALL PRIVILEGES ON DATABASE gamevault_developer TO gamevault_user;
+    GRANT ALL PRIVILEGES ON DATABASE gamevault_shopping TO gamevault_user;
+
+---
 # PostgreSQL Deployment
 apiVersion: apps/v1
 kind: Deployment
@@ -99,7 +121,8 @@ spec:
         persistentVolumeClaim:
           claimName: postgres-pvc
       - name: init-scripts
-        emptyDir: {}
+        configMap:
+          name: postgres-init-script
 
 ---
 # PostgreSQL Service

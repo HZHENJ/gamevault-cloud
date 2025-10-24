@@ -50,6 +50,9 @@ spring:
             - Path=/ws/info/**,/ws/**
           filters:
             - StripPrefix=0
+          metadata:
+            connect-timeout: 60000
+            response-timeout: 60000
 
         # ==================== Social 服务 ====================
         - id: social-service
@@ -66,15 +69,6 @@ spring:
             - Path=/api/forum/**
           filters:
             - StripPrefix=0
-
-        # ==================== 个人资料服务 ====================
-        - id: profile-service
-          uri: lb://gamevault-profile
-          predicates:
-            - Path=/api/settings/**,/api/profile/**
-          filters:
-            - StripPrefix=0
-
 
       # 全局跨域配置
       globalcors:
