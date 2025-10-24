@@ -7,7 +7,7 @@ name: "CD - Build and Deploy"
 
 on:
   push:
-    branches: [master, main, prod/master]
+    branches: [prod/master, master, main]
     tags:
       - 'v*'
   workflow_dispatch:
