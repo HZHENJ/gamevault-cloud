@@ -145,6 +145,8 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=sha,prefix={{branch}}-
             type=raw,value=latest,enable={{is_default_branch}}
+          flavor: |
+            latest=auto
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
@@ -158,7 +160,7 @@ jobs:
           pull: false
           cache-from: |
             type=gha
-            ${{ steps.check_image.outputs.exists == 'true' && format('type=registry,ref={0}/{1}:latest', secrets.DOCKERHUB_USERNAME, matrix.service) || '' }}
+            ${{ steps.check_image.outputs.exists == 'true' && format('type=registry,ref={0}/{1}:latest', secrets.DOCKERHUB_USERNAME, matrix.service) || 'type=gha' }}
           cache-to: type=gha,mode=max
 
       - name: Docker Scout Security Scan
