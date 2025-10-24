@@ -130,14 +130,8 @@ jobs:
             echo "Image exists in registry, will use as cache"
           else
             echo "exists=false" >> $GITHUB_OUTPUT
-            echo "ℹImage does not exist in registry, building from scratch"
+            echo "Image does not exist in registry, building from scratch"
           fi
-
-      - name: Extract metadata
-        id: meta
-        run: |
-          IMAGE_TAGS="${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.service }}:prod-master,${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.service }}:${{ github.sha }}"
-          echo "tags=$IMAGE_TAGS" >> $GITHUB_OUTPUT
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
@@ -145,14 +139,12 @@ jobs:
           context: .
           file: ./${{ matrix.service }}/Dockerfile
           push: true
-          tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.service }}:prod-master
-            ${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.service }}:${{ github.sha }}
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.service }}:latest
           labels: |
             org.opencontainers.image.source=${{ github.repository }}
           platforms: linux/amd64
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.service }}:latest
+          cache-to: type=inline
 
       - name: Docker Scout Security Scan
         uses: docker/scout-action@v1
@@ -170,7 +162,7 @@ jobs:
           echo "Image built and pushed successfully" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Repository**: ${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.service }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Tags**: ${{ steps.meta.outputs.tags }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Tags**: latest" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Pull Command" >> $GITHUB_STEP_SUMMARY
           echo '```bash' >> $GITHUB_STEP_SUMMARY
