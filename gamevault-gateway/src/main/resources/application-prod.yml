@@ -26,7 +26,7 @@ spring:
         - id: auth-service
           uri: lb://gamevault-auth
           predicates:
-            - Path=/api/auth/**, /.well-known/jwks.json, /api/settings/**
+            - Path=/api/auth/**, /.well-known/jwks.json, /api/settings/**, /uploads/**
           filters:
             - StripPrefix=0
 
