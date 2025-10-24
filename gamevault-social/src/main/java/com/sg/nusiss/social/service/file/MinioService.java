@@ -22,13 +22,21 @@ import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class MinioService {
 
     private final MinioClient minioClient;
     private final MinioConfig minioConfig;
-    @Qualifier("publicMinioClient")
     private final MinioClient publicMinioClient;
+
+    public MinioService(
+            @Qualifier("minioClient") MinioClient minioClient,
+            @Qualifier("publicMinioClient") MinioClient publicMinioClient,
+            MinioConfig minioConfig
+    ) {
+        this.minioClient = minioClient;
+        this.publicMinioClient = publicMinioClient;
+        this.minioConfig = minioConfig;
+    }
 
     /**
      * 检查存储桶是否存在，不存在则创建
