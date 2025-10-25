@@ -30,7 +30,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(a -> a
                         .requestMatchers("/.well-known/jwks.json").permitAll()
                         .requestMatchers("/uploads/**").permitAll()  // 允许公开访问上传的文件（如头像）
-                        .requestMatchers("/api/auth/login/**").permitAll()
+                        .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/users/**").authenticated()
                         .anyRequest().authenticated()
                 )
