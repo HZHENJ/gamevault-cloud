@@ -17,6 +17,7 @@ env:
 
 jobs:
   build-and-push:
+    environment: production
     runs-on: ubuntu-latest
     name: Build and Push Docker Images
     strategy:
