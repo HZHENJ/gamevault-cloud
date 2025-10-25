@@ -1,90 +1,21 @@
 # ==========================================
-# CD Workflow - Build Docker Images and Deploy to K8s
+# CD Workflow - Build Docker Images and Deploy to EC2
 # For GameVault Cloud Microservices
+# Deployment Method: Docker Compose
 # ==========================================
 
-name: "CD - Build and Deploy"
+name: "CD - Build and Deploy to EC2"
 
 on:
   push:
-    branches: [prod/master, master, main]
-    tags:
-      - 'v*'
+    branches: [prod/master_no_k8s]
   workflow_dispatch:
-    inputs:
-      environment:
-        description: 'Deployment environment'
-        required: true
-        default: 'production'
-        type: choice
-        options:
-          - production
-          - staging
 
 env:
   DOCKER_REGISTRY: docker.io
   IMAGE_TAG: latest
 
-#
 jobs:
-  create-release:
-    runs-on: ubuntu-latest
-    name: Create GitHub Release
-    if: startsWith(github.ref, 'refs/tags/v')
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Generate Changelog
-        id: changelog
-        uses: TriPSs/conventional-changelog-action@v5
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          output-file: "false"
-          skip-version-file: true
-          skip-commit: true
-
-      - name: Create Release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref_name }}
-          release_name: GameVault Cloud ${{ github.ref_name }}
-          body: |
-            ## GameVault Cloud Microservices ${{ github.ref_name }}
-
-            ${{ steps.changelog.outputs.clean_changelog }}
-
-            ### Docker Images
-            ```bash
-            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/gamevault-gateway:${{ github.ref_name }}
-            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/gamevault-auth:${{ github.ref_name }}
-            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/gamevault-shopping:${{ github.ref_name }}
-            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/gamevault-forum:${{ github.ref_name }}
-            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/gamevault-developer:${{ github.ref_name }}
-            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/gamevault-social:${{ github.ref_name }}
-            ```
-
-            ### Services
-            - Gateway Service
-            - Auth Service
-            - Shopping Service
-            - Forum Service
-            - Developer Service
-            - Social Service
-
-            ### Infrastructure
-            - PostgreSQL 16
-            - Redis
-            - Nacos (Service Discovery)
-            - MinIO (Object Storage)
-          draft: false
-          prerelease: false
-
   build-and-push:
     runs-on: ubuntu-latest
     name: Build and Push Docker Images
@@ -122,193 +53,163 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Check if image exists in registry
-        id: check_image
-        continue-on-error: true
-        run: |
-          if docker manifest inspect ${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.service }}:latest > /dev/null 2>&1; then
-            echo "exists=true" >> $GITHUB_OUTPUT
-            echo "Image exists in registry, will use as cache"
-          else
-            echo "exists=false" >> $GITHUB_OUTPUT
-            echo "Image does not exist in registry, building from scratch"
-          fi
-
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: .
+          context: ./${{ matrix.service }}
           file: ./${{ matrix.service }}/Dockerfile
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.service }}:latest
-          labels: |
-            org.opencontainers.image.source=${{ github.repository }}
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.service }}:${{ env.IMAGE_TAG }}
           platforms: linux/amd64
           cache-from: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.service }}:latest
           cache-to: type=inline
 
-      - name: Docker Scout Security Scan
-        uses: docker/scout-action@v1
-        with:
-          command: cves
-          image: ${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.service }}:latest
-          exit-code: false
-          summary: true
-        continue-on-error: true
-
-      - name: Generate Build Summary
-        run: |
-          echo "## Docker Build - ${{ matrix.service }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Image built and pushed successfully" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Repository**: ${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.service }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Tags**: latest" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Pull Command" >> $GITHUB_STEP_SUMMARY
-          echo '```bash' >> $GITHUB_STEP_SUMMARY
-          echo "docker pull ${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.service }}:latest" >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-
-  deploy-to-production:
+  deploy-to-ec2:
     runs-on: ubuntu-latest
     needs: build-and-push
-    name: Deploy to Production
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/prod/master' || startsWith(github.ref, 'refs/tags/v')
-    environment:
-      name: production
+    name: Deploy to EC2 via Docker Compose
+    if: github.ref == 'refs/heads/prod/master_no_k8s'
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install kubectl
-        uses: azure/setup-kubectl@v3
-        with:
-          version: 'v1.28.0'
-
-      - name: Configure kubectl for Production
+      - name: Configure SSH
         run: |
-          mkdir -p $HOME/.kube
-          echo "${{ secrets.KUBE_CONFIG_PRODUCTION }}" | base64 -d > $HOME/.kube/config
-          chmod 600 $HOME/.kube/config
-          # 跳过 TLS 验证
-          kubectl config set-cluster default --insecure-skip-tls-verify=true
-
-      - name: Verify cluster connection
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_PRIVATE_KEY }}" > ~/.ssh/ec2_key
+          chmod 600 ~/.ssh/ec2_key
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+      # 新增：初始化 EC2 环境
+      - name: Initialize EC2 environment
         run: |
-          kubectl cluster-info
-          kubectl get nodes
-
-      - name: Deploy namespace
-        run: |
-          kubectl apply -f k8s/namespace.yaml
-
-      - name: Deploy infrastructure
-        run: |
-          echo "Deploying infrastructure components..."
-          kubectl apply -f k8s/infrastructure/postgres.yaml
-          kubectl apply -f k8s/infrastructure/redis.yaml
-          kubectl apply -f k8s/infrastructure/nacos.yaml
-          kubectl apply -f k8s/infrastructure/minio.yaml
-
-      - name: Wait for infrastructure to be ready
-        run: |
-          echo "Waiting for infrastructure components..."
-          echo "Waiting for PostgreSQL..."
-          kubectl wait --for=condition=ready pod -l app=postgres -n gamevault --timeout=300s
-          echo "Waiting for Redis..."
-          kubectl wait --for=condition=ready pod -l app=redis -n gamevault --timeout=300s
-          echo "Waiting for Nacos..."
-          kubectl wait --for=condition=ready pod -l app=nacos -n gamevault --timeout=300s 
-          echo "Waiting for MinIO..."
-          kubectl wait --for=condition=ready pod -l app=minio -n gamevault --timeout=300s
-          echo "All infrastructure components are ready!"
-
-      - name: Initialize PostgreSQL databases
-        run: |
-          echo "Initializing PostgreSQL databases..."
+          ssh -i ~/.ssh/ec2_key ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+            echo "Initializing deployment environment..."
           
-          # 删除旧的 Init Job（如果存在）
-          kubectl delete job postgres-init -n gamevault --ignore-not-found=true
+            # 检查 Docker 是否安装
+            if ! command -v docker &> /dev/null; then
+              echo "Installing Docker..."
+              curl -fsSL https://get.docker.com -o get-docker.sh
+              sudo sh get-docker.sh
+              sudo usermod -aG docker $USER
+              rm get-docker.sh
+            fi
           
-          # 应用 Init Job
-          kubectl apply -f k8s/infrastructure/postgres-init-job.yaml
+            # 检查 Docker Compose 是否安装
+            if ! docker compose version &> /dev/null; then
+              echo "Installing Docker Compose..."
+              sudo apt-get update
+              sudo apt-get install -y docker-compose-plugin
+            fi
           
-          # 等待 Job 完成
-          echo "Waiting for database initialization..."
-          kubectl wait --for=condition=complete job/postgres-init -n gamevault --timeout=120s
-          
-          # 查看日志
-          echo "Database initialization logs:"
-          kubectl logs -n gamevault -l job-name=postgres-init --tail=50
-          
-          echo "Database initialization complete!"
+            echo "ocker and Docker Compose are ready"
+          EOF
 
-      - name: Deploy services to K8s
+      # 新增：创建目录结构
+      - name: Create directory structure
         run: |
-          DOCKER_REGISTRY="${{ secrets.DOCKERHUB_USERNAME }}"
-          IMAGE_TAG="${{ env.IMAGE_TAG }}"
+          ssh -i ~/.ssh/ec2_key ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+            echo "reating directory structure..."
           
-          echo "Deploying with:"
-          echo "  DOCKER_REGISTRY: $DOCKER_REGISTRY"
-          echo "  IMAGE_TAG: $IMAGE_TAG"
+            mkdir -p ~/gamevault-cloud/docker/postgres/data
+            mkdir -p ~/gamevault-cloud/docker/postgres/init
+            mkdir -p ~/gamevault-cloud/docker/nacos/logs
+            mkdir -p ~/gamevault-cloud/docker/nacos/data
+            mkdir -p ~/gamevault-cloud/docker/redis/data
+            mkdir -p ~/gamevault-cloud/docker/minio/data
+            mkdir -p ~/gamevault-cloud/docker/minio/config
+            mkdir -p ~/gamevault-cloud/docker/uploads
           
-          # 直接部署服务
-          cd k8s/services
-          for service_file in *.yaml; do
-          echo "Deploying $service_file..."
-          cat "$service_file" | \
-           sed "s|\${DOCKER_REGISTRY}|$DOCKER_REGISTRY|g" | \
-           sed "s|\${IMAGE_TAG}|$IMAGE_TAG|g" | \
-           kubectl apply -f -
-          done
+            sudo chmod -R 755 ~/gamevault-cloud/docker
+          
+            echo "Directory structure created"
+          EOF
 
-      - name: Wait for deployments to be ready
+      # 新增：创建 Redis 配置
+      - name: Create Redis config
         run: |
-          echo "Waiting for all services to be ready..."
-          kubectl wait --for=condition=available deployment --all -n gamevault --timeout=600s
-          echo "All services are ready!"
+          ssh -i ~/.ssh/ec2_key ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+            if [ ! -f ~/gamevault-cloud/docker/redis/redis.conf ]; then
+              echo "📝 Creating Redis configuration..."
+              cat > ~/gamevault-cloud/docker/redis/redis.conf << 'REDIS_EOF'
+            bind 0.0.0.0
+            protected-mode no
+            port 6379
+            tcp-backlog 511
+            timeout 0
+            tcp-keepalive 300
+            daemonize no
+            supervised no
+            pidfile /var/run/redis_6379.pid
+            loglevel notice
+            databases 16
+            save 900 1
+            save 300 10
+            save 60 10000
+            stop-writes-on-bgsave-error yes
+            rdbcompression yes
+            rdbchecksum yes
+            dbfilename dump.rdb
+            dir /data
+            maxmemory 256mb
+            maxmemory-policy allkeys-lru
+            REDIS_EOF
+              echo "Redis config created"
+            fi
+          EOF
 
-#      - name: Run smoke tests
-#        run: |
-#          echo "Running smoke tests..."
-#          GATEWAY_IP=$(kubectl get svc gamevault-gateway -n gamevault -o jsonpath='{.status.loadBalancer.ingress[0].ip}' || echo "")
-#          if [ -n "$GATEWAY_IP" ]; then
-#            curl -f http://${GATEWAY_IP}/actuator/health || echo "Health check failed"
-#          fi
-
-      - name: Get deployment status
+      # 新增：创建数据库初始化脚本
+      - name: Create database init script
         run: |
-          echo "## Production Deployment" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Application deployed to production" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Environment**: Production" >> $GITHUB_STEP_SUMMARY
-          echo "**Version**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Image Tag**: ${{ env.IMAGE_TAG }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Pods Status:" >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          kubectl get pods -n gamevault >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Services:" >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          kubectl get svc -n gamevault >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
+          ssh -i ~/.ssh/ec2_key ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+            if [ ! -f ~/gamevault-cloud/docker/postgres/init/01-init-databases.sql ]; then
+              echo "Creating database initialization script..."
+              cat > ~/gamevault-cloud/docker/postgres/init/01-init-databases.sql << 'SQL_EOF'
+            -- 创建各个服务的数据库
+            CREATE DATABASE gamevault_auth;
+            CREATE DATABASE gamevault_social;
+            CREATE DATABASE gamevault_shopping;
+            CREATE DATABASE gamevault_forum;
+            CREATE DATABASE gamevault_developer;
 
-      - name: Get Gateway URL
+            -- 授权
+            GRANT ALL PRIVILEGES ON DATABASE gamevault_auth TO gamevault_user;
+            GRANT ALL PRIVILEGES ON DATABASE gamevault_social TO gamevault_user;
+            GRANT ALL PRIVILEGES ON DATABASE gamevault_shopping TO gamevault_user;
+            GRANT ALL PRIVILEGES ON DATABASE gamevault_forum TO gamevault_user;
+            GRANT ALL PRIVILEGES ON DATABASE gamevault_developer TO gamevault_user;
+            SQL_EOF
+              echo "Database init script created"
+            fi
+          EOF
+      - name: Copy docker-compose.yml to EC2
         run: |
-          GATEWAY_URL=$(kubectl get svc gamevault-gateway -n gamevault -o jsonpath='{.status.loadBalancer.ingress[0].ip}' || echo "Pending...")
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Access URLs:" >> $GITHUB_STEP_SUMMARY
-          echo "- **Gateway**: http://${GATEWAY_URL}" >> $GITHUB_STEP_SUMMARY
-          echo "- **API Docs**: http://${GATEWAY_URL}/swagger-ui.html" >> $GITHUB_STEP_SUMMARY
+          scp -i ~/.ssh/ec2_key docker-compose.yml ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/gamevault/
 
-      - name: Rollback on failure
-        if: failure()
+      - name: Deploy on EC2
         run: |
-          echo "Deployment failed! Rolling back..." >> $GITHUB_STEP_SUMMARY
-          kubectl rollout undo deployment --all -n gamevault
-          kubectl wait --for=condition=available deployment --all -n gamevault --timeout=300s
+          ssh -i ~/.ssh/ec2_key ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+            cd ~/gamevault-cloud
+          
+            # 设置环境变量
+            export DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}
+          
+            echo "Pulling latest images..."
+            docker-compose pull
+          
+            echo "Stopping old containers..."
+            docker-compose down
+          
+            echo "Starting services..."
+            docker-compose up -d
+          
+            echo "Waiting for services..."
+            sleep 30
+          
+            echo "Deployment complete!"
+            docker-compose ps
+          EOF
+
+      - name: Cleanup SSH key
+        if: always()
+        run: rm -f ~/.ssh/ec2_key
