@@ -23,22 +23,23 @@ spec:
             - containerPort: 8080
               name: http
           env:
-            # Spring Profile - 激活生产环境配置
+            # 启用生产配置
             - name: SPRING_PROFILES_ACTIVE
               value: "prod"
 
-            # Nacos 配置
+            # Nacos 服务注册配置
             - name: SPRING_CLOUD_NACOS_DISCOVERY_SERVER_ADDR
               value: "nacos:8848"
             - name: SPRING_CLOUD_NACOS_DISCOVERY_NAMESPACE
               value: "prod"
 
-            # Pod IP（用于 Nacos 注册）
+            # Pod IP，用于 Nacos 注册
             - name: POD_IP
               valueFrom:
                 fieldRef:
                   fieldPath: status.podIP
 
+          # 如果是测试环境，可以先不限制资源
           # resources:
           #   requests:
           #     memory: "512Mi"
@@ -46,6 +47,7 @@ spec:
           #   limits:
           #     memory: "1Gi"
           #     cpu: "500m"
+
 ---
 apiVersion: v1
 kind: Service
@@ -55,37 +57,12 @@ metadata:
   labels:
     app: gamevault-gateway
 spec:
-  type: LoadBalancer
-  ports:
-    - port: 80
-      targetPort: 8080
-      protocol: TCP
-      name: http
+  type: NodePort
   selector:
     app: gamevault-gateway
----
-apiVersion: autoscaling/v2
-kind: HorizontalPodAutoscaler
-metadata:
-  name: gamevault-gateway-hpa
-  namespace: gamevault
-spec:
-  scaleTargetRef:
-    apiVersion: apps/v1
-    kind: Deployment
-    name: gamevault-gateway
-  minReplicas: 1
-  maxReplicas: 3
-  metrics:
-    - type: Resource
-      resource:
-        name: cpu
-        target:
-          type: Utilization
-          averageUtilization: 70
-    - type: Resource
-      resource:
-        name: memory
-        target:
-          type: Utilization
-          averageUtilization: 80
+  ports:
+    - name: http
+      protocol: TCP
+      port: 8080           # 容器监听端口
+      targetPort: 8080     # Pod 内部端口
+      nodePort: 30131      # 外部访问端口（固定）

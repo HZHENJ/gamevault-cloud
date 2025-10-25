@@ -20,17 +20,15 @@ spring:
         enabled: false
 
     gateway:
-      # ==================== 路由配置 ====================
 
       routes:
         # ==================== 认证服务 ====================
         - id: auth-service
-         # uri: lb://gamevault-auth
-          uri: http://gamevault-auth.gamevault.svc.cluster.local:8081
+          uri: lb://gamevault-auth
           predicates:
             - Path=/api/auth/**,/.well-known/jwks.json,/api/settings/**,/uploads/**
-#          filters:
-#            - StripPrefix=0
+          filters:
+            - StripPrefix=0
 
         # ==================== Shopping 服务 ====================
         - id: shopping-service
