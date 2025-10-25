@@ -7,7 +7,7 @@ spring:
 
   web:
     resources:
-      static-locations: file:/app/uploads/,classpath:/static/
+      static-locations: file:/uploads/,classpath:/static/
 
   # 数据源配置 - 生产环境从环境变量读取
   datasource:
