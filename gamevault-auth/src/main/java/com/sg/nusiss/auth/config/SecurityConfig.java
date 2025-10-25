@@ -2,7 +2,6 @@ package com.sg.nusiss.auth.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -25,7 +24,7 @@ public class SecurityConfig {
                 .cors(cors -> cors.disable())
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(a -> a
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
                         .requestMatchers("/.well-known/jwks.json").permitAll()
                         .requestMatchers("/uploads/**").permitAll()  // 允许公开访问上传的文件（如头像）
                         .requestMatchers("/api/auth/login").permitAll()
