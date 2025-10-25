@@ -80,7 +80,7 @@ jobs:
           echo "${{ secrets.EC2_SSH_PRIVATE_KEY }}" > ~/.ssh/ec2_key
           chmod 600 ~/.ssh/ec2_key
           ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
-      # 新增：初始化 EC2 环境
+
       - name: Initialize EC2 environment
         run: |
           ssh -i ~/.ssh/ec2_key ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
@@ -102,14 +102,13 @@ jobs:
               sudo apt-get install -y docker-compose-plugin
             fi
           
-            echo "ocker and Docker Compose are ready"
+            echo "Docker and Docker Compose are ready"
           EOF
 
-      # 新增：创建目录结构
       - name: Create directory structure
         run: |
           ssh -i ~/.ssh/ec2_key ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
-            echo "reating directory structure..."
+            echo "Creating directory structure..."
           
             mkdir -p ~/gamevault-cloud/docker/postgres/data
             mkdir -p ~/gamevault-cloud/docker/postgres/init
@@ -125,74 +124,76 @@ jobs:
             echo "Directory structure created"
           EOF
 
-      # 新增：创建 Redis 配置
       - name: Create Redis config
         run: |
           ssh -i ~/.ssh/ec2_key ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
             if [ ! -f ~/gamevault-cloud/docker/redis/redis.conf ]; then
-              echo "📝 Creating Redis configuration..."
+              echo "Creating Redis configuration..."
               cat > ~/gamevault-cloud/docker/redis/redis.conf << 'REDIS_EOF'
-            bind 0.0.0.0
-            protected-mode no
-            port 6379
-            tcp-backlog 511
-            timeout 0
-            tcp-keepalive 300
-            daemonize no
-            supervised no
-            pidfile /var/run/redis_6379.pid
-            loglevel notice
-            databases 16
-            save 900 1
-            save 300 10
-            save 60 10000
-            stop-writes-on-bgsave-error yes
-            rdbcompression yes
-            rdbchecksum yes
-            dbfilename dump.rdb
-            dir /data
-            maxmemory 256mb
-            maxmemory-policy allkeys-lru
-            REDIS_EOF
+          bind 0.0.0.0
+          protected-mode no
+          port 6379
+          tcp-backlog 511
+          timeout 0
+          tcp-keepalive 300
+          daemonize no
+          supervised no
+          pidfile /var/run/redis_6379.pid
+          loglevel notice
+          databases 16
+          save 900 1
+          save 300 10
+          save 60 10000
+          stop-writes-on-bgsave-error yes
+          rdbcompression yes
+          rdbchecksum yes
+          dbfilename dump.rdb
+          dir /data
+          maxmemory 256mb
+          maxmemory-policy allkeys-lru
+          REDIS_EOF
               echo "Redis config created"
             fi
           EOF
 
-      # 新增：创建数据库初始化脚本
       - name: Create database init script
         run: |
           ssh -i ~/.ssh/ec2_key ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
             if [ ! -f ~/gamevault-cloud/docker/postgres/init/01-init-databases.sql ]; then
               echo "Creating database initialization script..."
               cat > ~/gamevault-cloud/docker/postgres/init/01-init-databases.sql << 'SQL_EOF'
-            -- 创建各个服务的数据库
-            CREATE DATABASE gamevault_auth;
-            CREATE DATABASE gamevault_social;
-            CREATE DATABASE gamevault_shopping;
-            CREATE DATABASE gamevault_forum;
-            CREATE DATABASE gamevault_developer;
-
-            -- 授权
-            GRANT ALL PRIVILEGES ON DATABASE gamevault_auth TO gamevault_user;
-            GRANT ALL PRIVILEGES ON DATABASE gamevault_social TO gamevault_user;
-            GRANT ALL PRIVILEGES ON DATABASE gamevault_shopping TO gamevault_user;
-            GRANT ALL PRIVILEGES ON DATABASE gamevault_forum TO gamevault_user;
-            GRANT ALL PRIVILEGES ON DATABASE gamevault_developer TO gamevault_user;
-            SQL_EOF
+          -- 创建各个服务的数据库
+          CREATE DATABASE gamevault_auth;
+          CREATE DATABASE gamevault_social;
+          CREATE DATABASE gamevault_shopping;
+          CREATE DATABASE gamevault_forum;
+          CREATE DATABASE gamevault_developer;
+          
+          -- 授权
+          GRANT ALL PRIVILEGES ON DATABASE gamevault_auth TO gamevault_user;
+          GRANT ALL PRIVILEGES ON DATABASE gamevault_social TO gamevault_user;
+          GRANT ALL PRIVILEGES ON DATABASE gamevault_shopping TO gamevault_user;
+          GRANT ALL PRIVILEGES ON DATABASE gamevault_forum TO gamevault_user;
+          GRANT ALL PRIVILEGES ON DATABASE gamevault_developer TO gamevault_user;
+          SQL_EOF
               echo "Database init script created"
             fi
           EOF
+
+      # 🔥 修复：统一使用 ~/gamevault-cloud/ 路径
       - name: Copy docker-compose.yml to EC2
         run: |
-          scp -i ~/.ssh/ec2_key docker-compose.yml ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/gamevault/
+          scp -i ~/.ssh/ec2_key docker-compose.yml ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/gamevault-cloud/
 
       - name: Deploy on EC2
         run: |
           ssh -i ~/.ssh/ec2_key ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
             cd ~/gamevault-cloud
           
-            # 设置环境变量
+            # 🔥 修复：添加完整的环境变量
             export DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}
+            export IMAGE_TAG=latest
+            export EC2_PUBLIC_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
           
             echo "Pulling latest images..."
             docker-compose pull
