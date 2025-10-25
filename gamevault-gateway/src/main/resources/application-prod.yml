@@ -26,7 +26,7 @@ spring:
         - id: auth-service
           uri: lb://gamevault-auth
           predicates:
-            - Path=/api/auth/**, /.well-known/jwks.json, /api/settings/**, /uploads/**
+            - Path=/api/auth/**,/.well-known/jwks.json,/api/settings/**,/uploads/**
           filters:
             - StripPrefix=0
 
@@ -81,7 +81,7 @@ spring:
       globalcors:
         add-to-simple-url-handler-mapping: true
         corsConfigurations:
-          '[/api/**]':
+          '/**':
             allowedOriginPatterns: "*"
 #              - "http://localhost:3000"
 #              - "http://127.0.0.1:3000"
