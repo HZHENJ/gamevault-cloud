@@ -75,18 +75,21 @@ public class SecurityConfig {
 //        };
 //    }
 
-   @Bean
-   CorsConfigurationSource corsConfigurationSource() {
-       CorsConfiguration cfg = new CorsConfiguration();
-       // 与前端同源；如果之后有域名，就换成域名
-       cfg.setAllowedOrigins(List.of("http://52.77.169.8:30131"));
-       cfg.setAllowedMethods(List.of("GET","POST","PUT","DELETE","PATCH","OPTIONS"));
-       cfg.setAllowedHeaders(List.of("*"));
-       cfg.setAllowCredentials(true);
-       cfg.setMaxAge(3600L);
+    @Bean
+    CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration cfg = new CorsConfiguration();
+        cfg.setAllowedOriginPatterns(List.of(
+                "http://52.77.169.8:30130",
+                "http://localhost:3000",
+                "http://127.0.0.1:3000"
+        ));
+        cfg.setAllowedMethods(List.of("GET","POST","PUT","DELETE","PATCH","OPTIONS"));
+        cfg.setAllowedHeaders(List.of("*"));
+        cfg.setAllowCredentials(true);
+        cfg.setMaxAge(3600L);
 
-       UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-       source.registerCorsConfiguration("/**", cfg);
-       return source;
-   }
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", cfg);
+        return source;
+    }
 }
