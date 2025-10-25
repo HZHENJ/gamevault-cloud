@@ -77,26 +77,6 @@ spring:
           filters:
             - StripPrefix=0
 
-      globalcors:
-        add-to-simple-url-handler-mapping: true
-        cors-configurations:
-          '[/**]':
-            allowed-origin-patterns:
-              - "http://localhost:3000"
-              - "http://52.77.169.8:30130"
-              - "http://52.77.169.8:3000"
-              - "http://127.0.0.1:3000"
-              - "*"
-            allowed-methods:
-              - GET
-              - POST
-              - PUT
-              - DELETE
-              - OPTIONS
-              - PATCH
-            allowed-headers: "*"
-            allow-credentials: true
-            max-age: 3600
 
 # Actuator
 management:
