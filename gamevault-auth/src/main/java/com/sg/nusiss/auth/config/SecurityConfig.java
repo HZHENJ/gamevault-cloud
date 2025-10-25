@@ -8,14 +8,10 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
-import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import org.springframework.web.servlet.config.annotation.CorsRegistry;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import java.util.Collections;
 import java.util.List;
@@ -28,29 +24,28 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
-   @Bean
-   SecurityFilterChain security(HttpSecurity http) throws Exception {
-       http.csrf(
+    @Bean
+    SecurityFilterChain security(HttpSecurity http) throws Exception {
+        http
+                .csrf(csrf -> csrf.disable())
+                .cors(Customizer.withDefaults())
+                .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(a -> a
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers(HttpMethod.HEAD, "/**").permitAll()
 
-               csrf -> csrf.disable())
-               .cors(Customizer.withDefaults())
-               .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-               .authorizeHttpRequests(a -> a
-                       .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                       .requestMatchers("/.well-known/jwks.json").permitAll()
-                       .requestMatchers("/uploads/**").permitAll()
-                       .requestMatchers("/api/auth/**").permitAll()
-                       .requestMatchers("/api/users/**").authenticated()
-                       .anyRequest().authenticated()
-               )
-               .oauth2ResourceServer(oauth -> oauth
-                       .jwt(jwt -> jwt
-                               .jwtAuthenticationConverter(jwtAuthenticationConverter())
-                       )
-               );
+                        .requestMatchers("/.well-known/jwks.json").permitAll()
+                        .requestMatchers("/uploads/**").permitAll()
+                        .requestMatchers("/api/auth/**").permitAll()
 
-       return http.build();
-   }
+                        .anyRequest().authenticated()
+                )
+                .oauth2ResourceServer(oauth -> oauth
+                        .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()))
+                );
+
+        return http.build();
+    }
 
     @Bean
     public JwtAuthenticationConverter jwtAuthenticationConverter() {
@@ -63,12 +58,15 @@ public class SecurityConfig {
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration cfg = new CorsConfiguration();
+
         cfg.setAllowedOriginPatterns(List.of(
                 "http://52.77.169.8:30130",
+                "http://52.77.169.8:30132",
                 "http://localhost:3000",
                 "http://127.0.0.1:3000"
         ));
-        cfg.setAllowedMethods(List.of("GET","POST","PUT","DELETE","PATCH","OPTIONS"));
+
+        cfg.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"));
         cfg.setAllowedHeaders(List.of("*"));
         cfg.setAllowCredentials(true);
         cfg.setMaxAge(3600L);
