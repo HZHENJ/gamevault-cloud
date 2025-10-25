@@ -79,24 +79,24 @@ spring:
 
       globalcors:
         add-to-simple-url-handler-mapping: true
-        corsConfigurations:
+        cors-configurations:
           '[/**]':
-            allowedOriginPatterns:
+            allowed-origin-patterns:
               - "http://localhost:3000"
               - "http://52.77.169.8:30130"
               - "http://52.77.169.8:3000"
               - "http://127.0.0.1:3000"
               - "*"
-            allowedMethods:
+            allowed-methods:
               - GET
               - POST
               - PUT
               - DELETE
               - OPTIONS
               - PATCH
-            allowedHeaders: "*"
-            allowCredentials: true
-            maxAge: 3600
+            allowed-headers: "*"
+            allow-credentials: true
+            max-age: 3600
 
 # Actuator
 management:
