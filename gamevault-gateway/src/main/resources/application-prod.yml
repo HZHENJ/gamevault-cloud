@@ -22,16 +22,6 @@ spring:
     gateway:
       # ==================== 路由配置 ====================
 
-      globalcors:
-        add-to-simple-url-handler-mapping: true
-        corsConfigurations:
-          '[/**]':
-            allowedOrigins:
-              - "http://52.77.169.8:30131"  # 你的前端来源；将来有域名就换成域名
-            allowedMethods: [ "GET","POST","PUT","DELETE","PATCH","OPTIONS" ]
-            allowedHeaders: [ "*" ]
-            allowCredentials: true
-            maxAge: 3600
       routes:
         # ==================== 认证服务 ====================
         - id: auth-service
