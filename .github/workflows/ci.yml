@@ -8,9 +8,9 @@ name: "CI - Build and Test"
 
 on:
   push:
-    branches: [prod/master, master, main]
+    branches: [prod/master_no_k8s]
   pull_request:
-    branches: [prod/master, master, main]
+    branches: [prod/master_no_k8s]
 
 env:
   JAVA_VERSION: '17'
