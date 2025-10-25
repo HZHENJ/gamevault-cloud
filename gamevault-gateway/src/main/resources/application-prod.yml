@@ -82,12 +82,12 @@ spring:
         add-to-simple-url-handler-mapping: true
         corsConfigurations:
           '[/api/**]':
-            allowedOriginPatterns:
-              - "http://localhost:3000"
-              - "http://127.0.0.1:3000"
-              - "http://localhost:3001"
-              - "http://127.0.0.1:3001"
-              - "http://52.77.169.8:3000"
+            allowedOriginPatterns: "*"
+#              - "http://localhost:3000"
+#              - "http://127.0.0.1:3000"
+#              - "http://localhost:3001"
+#              - "http://127.0.0.1:3001"
+#              - "http://52.77.169.8:3000"
               # 生产环境添加你的前端域名或 IP
               # - "http://YOUR_FRONTEND_URL"
             allowedMethods:
