@@ -22,6 +22,20 @@ spring:
     gateway:
       # ==================== 路由配置 ====================
       routes:
+        # ==================== OPTIONS 预检（必须在最前面）====================
+        - id: cors-options
+          uri: no://op
+          order: -1
+          predicates:
+            - Method=OPTIONS
+          filters:
+            - SetStatus=200
+            - AddResponseHeader=Access-Control-Allow-Origin,*
+            - AddResponseHeader=Access-Control-Allow-Methods,GET,POST,PUT,DELETE,OPTIONS,PATCH
+            - AddResponseHeader=Access-Control-Allow-Headers,*
+            - AddResponseHeader=Access-Control-Allow-Credentials,true
+            - AddResponseHeader=Access-Control-Max-Age,3600
+
         # ==================== 认证服务 ====================
         - id: auth-service
           uri: lb://gamevault-auth
@@ -29,6 +43,8 @@ spring:
             - Path=/api/auth/**,/.well-known/jwks.json,/api/settings/**,/uploads/**
           filters:
             - StripPrefix=0
+            - AddResponseHeader=Access-Control-Allow-Origin,*
+            - AddResponseHeader=Access-Control-Allow-Credentials,true
 
         # ==================== Shopping 服务 ====================
         - id: shopping-service
@@ -37,6 +53,8 @@ spring:
             - Path=/api/games/**,/api/library/**,/api/cart/**,/api/orders/**,/api/admin/games/**,/api/user/activation-codes/**
           filters:
             - StripPrefix=0
+            - AddResponseHeader=Access-Control-Allow-Origin,*
+            - AddResponseHeader=Access-Control-Allow-Credentials,true
 
         # ==================== Developer 服务 ====================
         - id: developer-service
@@ -45,6 +63,9 @@ spring:
             - Path=/api/developer/**
           filters:
             - StripPrefix=0
+            - AddResponseHeader=Access-Control-Allow-Origin,*
+            - AddResponseHeader=Access-Control-Allow-Credentials,true
+
 
         # ==================== WebSocket 服务 ====================
         - id: social-websocket
@@ -61,6 +82,8 @@ spring:
             - Path=/api/conversation/**,/api/friend/**,/api/message/**,/api/file/**
           filters:
             - StripPrefix=0
+            - AddResponseHeader=Access-Control-Allow-Origin,*
+            - AddResponseHeader=Access-Control-Allow-Credentials,true
 
         # ==================== Forum 服务 ====================
         - id: forum-service
@@ -69,7 +92,8 @@ spring:
             - Path=/api/forum/**
           filters:
             - StripPrefix=0
-
+            - AddResponseHeader=Access-Control-Allow-Origin,*
+            - AddResponseHeader=Access-Control-Allow-Credentials,true
         # ==================== Profile 服务 ====================
         - id: profile-service
           uri: lb://gamevault-profile
@@ -77,41 +101,10 @@ spring:
             - Path=/api/settings/**,/api/profile/**
           filters:
             - StripPrefix=0
-
-        # ==================== OPTIONS 预检兜底处理 ====================
-        - id: cors-options
-          uri: no://op
-          predicates:
-            - Method=OPTIONS
-          filters:
-            - SetResponseHeader=Access-Control-Allow-Origin,*
-            - SetResponseHeader=Access-Control-Allow-Methods,GET,POST,PUT,DELETE,OPTIONS,PATCH
-            - SetResponseHeader=Access-Control-Allow-Headers,*
-            - SetResponseHeader=Access-Control-Allow-Credentials,true
-            - SetStatus=200
+            - AddResponseHeader=Access-Control-Allow-Origin,*
+            - AddResponseHeader=Access-Control-Allow-Credentials,true
 
       # ==================== 全局 CORS 配置 ====================
-      globalcors:
-        add-to-simple-url-handler-mapping: true
-        corsConfigurations:
-          '[/**]':
-            allowedOriginPatterns:
-              - "http://52.77.169.8:30131"
-              - "http://localhost:3000"
-              - "http://127.0.0.1:3000"
-              - "http://localhost:3001"
-              - "http://127.0.0.1:3001"
-            allowedMethods:
-              - GET
-              - POST
-              - PUT
-              - DELETE
-              - OPTIONS
-              - PATCH
-            allowedHeaders:
-              - "*"
-            allowCredentials: true
-            maxAge: 3600
 
 # ==================== Actuator ====================
 management:
