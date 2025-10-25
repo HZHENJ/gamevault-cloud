@@ -20,7 +20,7 @@ spring:
         enabled: false
 
     gateway:
-      # 路由配置 - 保持前端接口完全不变
+      # ==================== 路由配置 ====================
       routes:
         # ==================== 认证服务 ====================
         - id: auth-service
@@ -38,6 +38,7 @@ spring:
           filters:
             - StripPrefix=0
 
+        # ==================== Developer 服务 ====================
         - id: developer-service
           uri: lb://gamevault-developer
           predicates:
@@ -45,7 +46,7 @@ spring:
           filters:
             - StripPrefix=0
 
-        # ==================== WebSocket 服务（独立配置，优先匹配）====================
+        # ==================== WebSocket 服务 ====================
         - id: social-websocket
           uri: lb:ws://gamevault-social
           predicates:
@@ -61,7 +62,7 @@ spring:
           filters:
             - StripPrefix=0
 
-        # ==================== 论坛服务 ====================
+        # ==================== Forum 服务 ====================
         - id: forum-service
           uri: lb://gamevault-forum
           predicates:
@@ -69,14 +70,49 @@ spring:
           filters:
             - StripPrefix=0
 
-        # ==================== 个人资料服务 ====================
+        # ==================== Profile 服务 ====================
         - id: profile-service
           uri: lb://gamevault-profile
           predicates:
             - Path=/api/settings/**,/api/profile/**
           filters:
             - StripPrefix=0
-# Actuator
+
+        # ==================== OPTIONS 预检兜底处理 ====================
+        - id: cors-options
+          uri: no://op
+          predicates:
+            - Method=OPTIONS
+          filters:
+            - SetResponseHeader=Access-Control-Allow-Origin,*
+            - SetResponseHeader=Access-Control-Allow-Methods,GET,POST,PUT,DELETE,OPTIONS,PATCH
+            - SetResponseHeader=Access-Control-Allow-Headers,*
+            - SetResponseHeader=Access-Control-Allow-Credentials,true
+            - SetStatus=200
+
+      # ==================== 全局 CORS 配置 ====================
+      globalcors:
+        add-to-simple-url-handler-mapping: true
+        corsConfigurations:
+          '/**':                              # ✅ 改成全局
+            allowedOriginPatterns:
+              - "http://52.77.169.8:30131"    # ✅ 外网前端
+              - "http://localhost:3000"
+              - "http://127.0.0.1:3000"
+              - "http://localhost:3001"
+              - "http://127.0.0.1:3001"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+              - PATCH
+            allowedHeaders: "*"
+            allowCredentials: true
+            maxAge: 3600
+
+# ==================== Actuator ====================
 management:
   endpoints:
     web:
@@ -86,7 +122,7 @@ management:
     health:
       show-details: when-authorized
 
-# 日志 - 生产环境
+# ==================== 日志配置 ====================
 logging:
   level:
     org.springframework.cloud.gateway: INFO
@@ -94,5 +130,3 @@ logging:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
   file:
     name: /app/logs/gamevault-gateway.log
-#    max-size: 10MB
-#    max-history: 30
