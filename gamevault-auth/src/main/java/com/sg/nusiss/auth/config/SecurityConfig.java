@@ -2,6 +2,7 @@ package com.sg.nusiss.auth.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -24,10 +25,11 @@ public class SecurityConfig {
     @Bean
     SecurityFilterChain security(HttpSecurity http) throws Exception {
         http.csrf(csrf -> csrf.disable())
-                // .cors(cors -> cors.disable())
-                .cors(Customizer.withDefaults())
+                .cors(cors -> cors.disable())
+                // .cors(Customizer.withDefaults())
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(a -> a
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/.well-known/jwks.json").permitAll()
                         .requestMatchers("/uploads/**").permitAll()  // 允许公开访问上传的文件（如头像）
                         .requestMatchers("/api/auth/**").permitAll()
@@ -51,18 +53,18 @@ public class SecurityConfig {
         return converter;
     }
 
-    @Bean
-    public WebMvcConfigurer corsConfigurer() {
-        return new WebMvcConfigurer() {
-            @Override
-            public void addCorsMappings(CorsRegistry registry) {
-                registry.addMapping("/**")
-                        .allowedOriginPatterns("*")
-                        .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
-                        .allowedHeaders("*")
-                        .allowCredentials(true)
-                        .maxAge(3600);
-            }
-        };
-    }
+    // @Bean
+    // public WebMvcConfigurer corsConfigurer() {
+    //     return new WebMvcConfigurer() {
+    //         @Override
+    //         public void addCorsMappings(CorsRegistry registry) {
+    //             registry.addMapping("/**")
+    //                     .allowedOriginPatterns("*")
+    //                     .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
+    //                     .allowedHeaders("*")
+    //                     .allowCredentials(true)
+    //                     .maxAge(3600);
+    //         }
+    //     };
+    // }
 }
