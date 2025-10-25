@@ -53,18 +53,18 @@ public class SecurityConfig {
         return converter;
     }
 
-    // @Bean
-    // public WebMvcConfigurer corsConfigurer() {
-    //     return new WebMvcConfigurer() {
-    //         @Override
-    //         public void addCorsMappings(CorsRegistry registry) {
-    //             registry.addMapping("/**")
-    //                     .allowedOriginPatterns("*")
-    //                     .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
-    //                     .allowedHeaders("*")
-    //                     .allowCredentials(true)
-    //                     .maxAge(3600);
-    //         }
-    //     };
-    // }
+    @Bean
+    public WebMvcConfigurer corsConfigurer() {
+        return new WebMvcConfigurer() {
+            @Override
+            public void addCorsMappings(CorsRegistry registry) {
+                registry.addMapping("/**")
+                        .allowedOriginPatterns("*")
+                        .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
+                        .allowedHeaders("*")
+                        .allowCredentials(true)
+                        .maxAge(3600);
+            }
+        };
+    }
 }
