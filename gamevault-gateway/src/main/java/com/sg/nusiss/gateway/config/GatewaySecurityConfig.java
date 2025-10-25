@@ -16,7 +16,7 @@ public class GatewaySecurityConfig {
     @Bean
     public SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http) {
         return http
-                .cors(Customizer.withDefaults())                // 让 globalcors 生效
+                .cors(cors -> cors.disable())                // 让 globalcors 生效
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)    // 无状态 API 关 CSRF
                 .authorizeExchange(ex -> ex
                         .pathMatchers(HttpMethod.OPTIONS, "/**").permitAll()          // 预检放行

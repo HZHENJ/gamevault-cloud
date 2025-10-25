@@ -55,7 +55,7 @@ public class SecurityConfig {
 SecurityFilterChain security(HttpSecurity http) throws Exception {
     http
             // CORS 用 Bean（见下方），不要手工加响应头
-            .cors(Customizer.withDefaults())
+            .cors(cors -> cors.disable())
             // 无状态 API 关闭 CSRF
             .csrf(csrf -> csrf.disable())
             // 无会话（JWT）
@@ -129,18 +129,18 @@ SecurityFilterChain security(HttpSecurity http) throws Exception {
 //        };
 //    }
 
-    @Bean
-    CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration cfg = new CorsConfiguration();
-        // 与前端同源；如果之后有域名，就换成域名
-        cfg.setAllowedOrigins(List.of("http://52.77.169.8:30131"));
-        cfg.setAllowedMethods(List.of("GET","POST","PUT","DELETE","PATCH","OPTIONS"));
-        cfg.setAllowedHeaders(List.of("*"));
-        cfg.setAllowCredentials(true);
-        cfg.setMaxAge(3600L);
-
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", cfg);
-        return source;
-    }
+//    @Bean
+//    CorsConfigurationSource corsConfigurationSource() {
+//        CorsConfiguration cfg = new CorsConfiguration();
+//        // 与前端同源；如果之后有域名，就换成域名
+//        cfg.setAllowedOrigins(List.of("http://52.77.169.8:30131"));
+//        cfg.setAllowedMethods(List.of("GET","POST","PUT","DELETE","PATCH","OPTIONS"));
+//        cfg.setAllowedHeaders(List.of("*"));
+//        cfg.setAllowCredentials(true);
+//        cfg.setMaxAge(3600L);
+//
+//        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+//        source.registerCorsConfiguration("/**", cfg);
+//        return source;
+//    }
 }
