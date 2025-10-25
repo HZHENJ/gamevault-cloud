@@ -94,7 +94,7 @@ spring:
       globalcors:
         add-to-simple-url-handler-mapping: true
         corsConfigurations:
-          '/**':
+          '[/**]':
             allowedOriginPatterns:
               - "http://52.77.169.8:30131"
               - "http://localhost:3000"
