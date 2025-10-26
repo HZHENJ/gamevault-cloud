@@ -114,6 +114,21 @@ public class GameService {
         return convertToDTO(saved);
     }
 
+    /**
+     * 删除游戏
+     */
+    @Transactional
+    public void deleteGame(Long gameId) {
+        Game game = repo.findById(gameId)
+            .orElseThrow(() -> new RuntimeException("Game not found with id: " + gameId));
+        
+        // 删除游戏关联的激活码
+        unusedRepo.deleteByGameId(gameId);
+        
+        // 删除游戏
+        repo.delete(game);
+    }
+
     // --- DTO 转换 ---
     private GameDTO convertToDTO(Game game) {
         GameDTO dto = new GameDTO();

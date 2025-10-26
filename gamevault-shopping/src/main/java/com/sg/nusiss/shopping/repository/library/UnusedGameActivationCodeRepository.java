@@ -9,4 +9,5 @@ import java.util.Optional;
 public interface UnusedGameActivationCodeRepository extends JpaRepository<UnusedGameActivationCode, Long> {
     Optional<UnusedGameActivationCode> findFirstByGameId(Long gameId);
     long countByGameId(Long gameId);
+    void deleteByGameId(Long gameId);
 }
