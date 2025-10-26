@@ -25,7 +25,7 @@ spring:
       discovery:
         server-addr: ${SPRING_CLOUD_NACOS_DISCOVERY_SERVER_ADDR:nacos:8848}
         namespace: ${SPRING_CLOUD_NACOS_DISCOVERY_NAMESPACE:prod}
-        group: GAMEVAULT_GROUP
+        group: ${SPRING_CLOUD_NACOS_DISCOVERY_GROUP:GAMEVAULT_GROUP}
         ip: ${SPRING_CLOUD_NACOS_DISCOVERY_IP:${POD_IP:gateway}}
         register-enabled: true
         heart-beat-interval: 5000
