@@ -119,7 +119,12 @@ jobs:
             mkdir -p ~/gamevault-cloud/docker/minio/data
             mkdir -p ~/gamevault-cloud/docker/minio/config
             mkdir -p ~/gamevault-cloud/docker/uploads
+            mkdir -p ~/gamevault-cloud/docker/developer-uploads  
+            mkdir -p ~/gamevault-cloud/docker/developer-assets   
           
+            sudo chmod -R 777 ~/gamevault-cloud/docker/developer-uploads
+            sudo chmod -R 777 ~/gamevault-cloud/docker/developer-assets
+            sudo chmod -R 777 ~/gamevault-cloud/docker/uploads
             sudo chmod -R 755 ~/gamevault-cloud/docker
           
             echo "Directory structure created"
