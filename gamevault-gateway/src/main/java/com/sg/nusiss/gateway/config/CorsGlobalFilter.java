@@ -58,22 +58,22 @@ public class CorsGlobalFilter implements WebFilter, Ordered {
         if (requestOrigin != null && ALLOWED_ORIGINS.contains(requestOrigin)) {
             allowedOrigin = requestOrigin;  // 使用请求中的 Origin
         }
-        headers.add("Access-Control-Allow-Origin", allowedOrigin);
+        headers.set("Access-Control-Allow-Origin", allowedOrigin);
 
         // 设置允许的方法
-        headers.add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS");
+        headers.set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS");
 
         // 设置允许的请求头（明确列出，不用 *）
-        headers.add("Access-Control-Allow-Headers", String.join(", ", ALLOWED_HEADERS));
+        headers.set("Access-Control-Allow-Headers", String.join(", ", ALLOWED_HEADERS));
 
         // 允许携带凭证
-        headers.add("Access-Control-Allow-Credentials", "true");
+        headers.set("Access-Control-Allow-Credentials", "true");
 
         // 预检请求缓存时间
-        headers.add("Access-Control-Max-Age", "3600");
+        headers.set("Access-Control-Max-Age", "3600");
 
         // 允许前端访问的响应头
-        headers.add("Access-Control-Expose-Headers", "Authorization, Content-Type");
+        headers.set("Access-Control-Expose-Headers", "Authorization, Content-Type");
 
         // 处理 OPTIONS 预检请求
         if (exchange.getRequest().getMethod() == HttpMethod.OPTIONS) {
