@@ -61,11 +61,11 @@ RUN apk add --no-cache tzdata curl
 WORKDIR /app
 
 # 创建应用用户和组
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+RUN addgroup -g 1000 appgroup && adduser -u 1000 -S appuser -G appgroup
 
 RUN mkdir -p /uploads /app/game-assets && \
     chown -R appuser:appgroup /uploads /app/game-assets && \
-    chmod -R 755 /uploads /app/game-assets
+    chmod -R 777 /uploads /app/game-assets
 
 # 声明卷挂载点
 VOLUME ["/uploads", "/app/game-assets"]

@@ -121,7 +121,10 @@ jobs:
             mkdir -p ~/gamevault-cloud/docker/uploads
             mkdir -p ~/gamevault-cloud/docker/developer-uploads  
             mkdir -p ~/gamevault-cloud/docker/developer-assets   
-          
+            sudo chown -R 1000:1000 ~/gamevault-cloud/docker/developer-uploads
+            sudo chown -R 1000:1000 ~/gamevault-cloud/docker/developer-assets
+            sudo chown -R 1000:1000 ~/gamevault-cloud/docker/uploads
+     
             sudo chmod -R 777 ~/gamevault-cloud/docker/developer-uploads
             sudo chmod -R 777 ~/gamevault-cloud/docker/developer-assets
             sudo chmod -R 777 ~/gamevault-cloud/docker/uploads
