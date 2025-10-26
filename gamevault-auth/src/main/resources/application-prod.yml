@@ -57,7 +57,7 @@ spring:
         namespace: prod
         group: ${SPRING_CLOUD_NACOS_DISCOVERY_GROUP:DEFAULT_GROUP}
         ip: ${SPRING_CLOUD_NACOS_DISCOVERY_IP:}
-
+        enabled: true
         register-enabled: true
         heart-beat-interval: 5000
         heart-beat-timeout: 15000
