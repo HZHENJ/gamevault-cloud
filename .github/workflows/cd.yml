@@ -160,10 +160,11 @@ jobs:
       - name: Copy SQL initialization scripts to EC2
         run: |
           echo "Copying SQL files to EC2..."
-          scp -i ~/.ssh/ec2_key 01-init-databases.sql ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/gamevault-cloud/docker/postgres/init/
-          scp -i ~/.ssh/ec2_key 02-forum-schema.sql ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/gamevault-cloud/docker/postgres/init/
-          scp -i ~/.ssh/ec2_key 03-init-database.sql ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/gamevault-cloud/docker/postgres/init/
+          scp -i ~/.ssh/ec2_key docker/postgres/init/01-init-databases.sql ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/gamevault-cloud/docker/postgres/init/
+          scp -i ~/.ssh/ec2_key docker/postgres/init/02-forum-schema.sql ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/gamevault-cloud/docker/postgres/init/
+          scp -i ~/.ssh/ec2_key docker/postgres/init/03-init-database.sql ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/gamevault-cloud/docker/postgres/init/
           echo "SQL files copied successfully!"
+          
 
       - name: Verify SQL files on EC2
         run: |
