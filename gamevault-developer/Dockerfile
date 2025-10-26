@@ -63,6 +63,14 @@ WORKDIR /app
 # 创建应用用户和组
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
+RUN mkdir -p /uploads /app/game-assets && \
+    chown -R appuser:appgroup /uploads /app/game-assets && \
+    chmod -R 755 /uploads /app/game-assets
+
+# 声明卷挂载点
+VOLUME ["/uploads", "/app/game-assets"]
+
+
 # 复制 JAR 文件 (CI 已经构建好)
 COPY --chown=appuser:appgroup target/*.jar app.jar
 
