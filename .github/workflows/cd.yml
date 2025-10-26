@@ -203,6 +203,30 @@ jobs:
             sudo docker compose ps 
           EOF
 
+      - name: Cleanup Docker resources on EC2
+        if: always()
+        run: |
+          ssh -i ~/.ssh/ec2_key ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+            echo "🧹 Cleaning Docker resources..."
+          
+            # 删除悬空和旧的镜像
+            sudo docker image prune -af --filter "until=24h"
+          
+            # 删除停止的容器
+            sudo docker container prune -f
+          
+            # 删除未使用的网络
+            sudo docker network prune -f
+          
+            # 清理构建缓存
+            sudo docker builder prune -af --filter "until=24h"
+          
+            # 显示结果
+            echo "Cleanup done. Current usage:"
+            sudo docker system df
+          EOF
+        continue-on-error: true
+
       - name: Cleanup SSH key
         if: always()
         run: rm -f ~/.ssh/ec2_key
