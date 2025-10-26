@@ -114,8 +114,8 @@ spring:
               - "http://127.0.0.1:3000"
               - "http://localhost:3001"
               - "http://127.0.0.1:3001"
-              - "http://${EC2_PUBLIC_IP:52.77.169.8}:30130"
-              - "http://${EC2_PUBLIC_IP:52.77.169.8}:30131"
+              - "http://${EC2_PUBLIC_IP:52.77.169.8}:3000"
+              - "http://${EC2_PUBLIC_IP:52.77.169.8}:3001"
             allowedMethods:
               - GET
               - POST
