@@ -157,28 +157,19 @@ jobs:
             fi
           EOF
 
-      - name: Create database init script
+      - name: Copy SQL initialization scripts to EC2
+        run: |
+          echo "Copying SQL files to EC2..."
+          scp -i ~/.ssh/ec2_key 01-init-databases.sql ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/gamevault-cloud/docker/postgres/init/
+          scp -i ~/.ssh/ec2_key 02-forum-schema.sql ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/gamevault-cloud/docker/postgres/init/
+          scp -i ~/.ssh/ec2_key 03-init-database.sql ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/gamevault-cloud/docker/postgres/init/
+          echo "SQL files copied successfully!"
+
+      - name: Verify SQL files on EC2
         run: |
           ssh -i ~/.ssh/ec2_key ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
-            if [ ! -f ~/gamevault-cloud/docker/postgres/init/01-init-databases.sql ]; then
-              echo "Creating database initialization script..."
-              cat > ~/gamevault-cloud/docker/postgres/init/01-init-databases.sql << 'SQL_EOF'
-          -- 创建各个服务的数据库
-          CREATE DATABASE gamevault_auth;
-          CREATE DATABASE gamevault_social;
-          CREATE DATABASE gamevault_shopping;
-          CREATE DATABASE gamevault_forum;
-          CREATE DATABASE gamevault_developer;
-          
-          -- 授权
-          GRANT ALL PRIVILEGES ON DATABASE gamevault_auth TO gamevault_user;
-          GRANT ALL PRIVILEGES ON DATABASE gamevault_social TO gamevault_user;
-          GRANT ALL PRIVILEGES ON DATABASE gamevault_shopping TO gamevault_user;
-          GRANT ALL PRIVILEGES ON DATABASE gamevault_forum TO gamevault_user;
-          GRANT ALL PRIVILEGES ON DATABASE gamevault_developer TO gamevault_user;
-          SQL_EOF
-              echo "Database init script created"
-            fi
+            echo "Verifying SQL files..."
+            ls -lh ~/gamevault-cloud/docker/postgres/init/
           EOF
 
       - name: Copy docker-compose.yml to EC2
