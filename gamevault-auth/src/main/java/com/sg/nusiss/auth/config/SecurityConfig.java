@@ -32,7 +32,6 @@ public class SecurityConfig {
         http
                 .addFilterBefore(requestLoggingFilter, UsernamePasswordAuthenticationFilter.class)
                 .csrf(csrf -> csrf.disable())
-                .cors(Customizer.withDefaults())
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(a -> a
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
@@ -57,28 +56,5 @@ public class SecurityConfig {
         return converter;
     }
 
-    @Bean
-    CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration cfg = new CorsConfiguration();
 
-        cfg.setAllowedOriginPatterns(List.of(
-                "http://52.77.169.8:30130",
-                "http://52.77.169.8:30132",
-                "http://52.77.169.8:3000",
-                "http://localhost:3000",
-                "http://127.0.0.1:3000"
-        ));
-
-        cfg.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"));
-        cfg.setAllowedHeaders(List.of("*"));
-        cfg.setAllowCredentials(true);
-        cfg.setMaxAge(3600L);
-        cfg.setExposedHeaders(Arrays.asList(
-                "Authorization",
-                "Content-Type"
-        ));
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", cfg);
-        return source;
-    }
 }
