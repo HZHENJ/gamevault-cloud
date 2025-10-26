@@ -39,6 +39,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/.well-known/jwks.json").permitAll()
                         .requestMatchers("/actuator/**").permitAll()
+                        .requestMatchers("/uploads/**").permitAll()  // 允许访问上传的文件
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth -> oauth
