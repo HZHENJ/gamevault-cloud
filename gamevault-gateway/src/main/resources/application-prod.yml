@@ -33,7 +33,7 @@ spring:
         - id: auth-service
           uri: lb://gamevault-auth
           predicates:
-            - Path=/api/auth/**, /.well-known/jwks.json, /api/settings/**
+            - Path=/api/auth/**, /.well-known/jwks.json, /api/settings/**, /api/profile/**
           filters:
             - StripPrefix=0
 
@@ -77,15 +77,22 @@ spring:
           filters:
             - StripPrefix=0
 
-        # ==================== 个人资料服务 ====================
-        - id: profile-service
-          uri: lb://gamevault-profile
-          predicates:
-            - Path=/api/settings/**,/api/profile/**
-          filters:
-            - StripPrefix=0
+#        # ==================== 个人资料服务 ====================
+#        - id: profile-service
+#          uri: lb://gamevault-profile
+#          predicates:
+#            - Path=/api/settings/**,/api/profile/**
+#          filters:
+#            - StripPrefix=0
 
       # 全局跨域配置 - 生产环境
+
+
+      loadbalancer:
+        cache:
+          enabled: true
+          caffeine:
+            spec: maximumSize=1000,expireAfterWrite=30s
 
       # 网关超时配置
       httpclient:

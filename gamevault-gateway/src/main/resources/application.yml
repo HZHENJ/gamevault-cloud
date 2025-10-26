@@ -68,13 +68,13 @@ spring:
           filters:
             - StripPrefix=0
 
-        # ==================== 个人资料服务 ====================
-        - id: profile-service
-          uri: lb://gamevault-profile
-          predicates:
-            - Path=/api/settings/**,/api/profile/**
-          filters:
-            - StripPrefix=0
+#        # ==================== 个人资料服务 ====================
+#        - id: profile-service
+#          uri: lb://gamevault-profile
+#          predicates:
+#            - Path=/api/settings/**,/api/profile/**
+#          filters:
+#            - StripPrefix=0
 
 
       # 全局跨域配置
@@ -97,6 +97,12 @@ spring:
             allowedHeaders: "*"
             allowCredentials: true
             maxAge: 3600
+
+      loadbalancer:
+        cache:
+          enabled: true
+          caffeine:
+            spec: maximumSize=1000,expireAfterWrite=30s
 
 # Actuator
 management:
