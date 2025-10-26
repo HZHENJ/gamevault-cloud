@@ -20,6 +20,7 @@ public class CorsGlobalFilter implements WebFilter, Ordered {
         HttpHeaders headers = response.getHeaders();
 
         headers.add("Access-Control-Allow-Origin", "http://52.77.169.8:3000");
+        headers.add("Access-Control-Allow-Origin", "http://localhost:3000");
         headers.add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS");
         headers.add("Access-Control-Allow-Headers", "*");
         headers.add("Access-Control-Allow-Credentials", "true");
@@ -32,6 +33,7 @@ public class CorsGlobalFilter implements WebFilter, Ordered {
 
         return chain.filter(exchange);
     }
+
 
     @Override
     public int getOrder() {
