@@ -28,7 +28,7 @@ WORKDIR /app
 # 创建应用用户和组
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
-COPY src/main/resources/application-prod.yml /app/config/
+COPY src/main/resources/application-prod.yml /app/application-prod.yml
 
 
 # 复制 JAR 文件 (CI 已经构建好)

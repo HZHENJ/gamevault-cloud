@@ -10,15 +10,27 @@ spring:
     name: gamevault-gateway
 
   cloud:
+#    nacos:
+#      discovery:
+#        server-addr: nacos:8848
+#        namespace: prod
+#        group: GAMEVAULT_GROUP
+#        ip: ${POD_IP:gateway}
+#        register-enabled: true
+#        heart-beat-interval: 5000
+#        heart-beat-timeout: 15000
+#      config:
+#        enabled: false
     nacos:
       discovery:
-        server-addr: nacos:8848
-        namespace: prod
+        server-addr: ${SPRING_CLOUD_NACOS_DISCOVERY_SERVER_ADDR:nacos:8848}
+        namespace: ${SPRING_CLOUD_NACOS_DISCOVERY_NAMESPACE:prod}
         group: GAMEVAULT_GROUP
-        ip: ${POD_IP:gateway}
+        ip: ${SPRING_CLOUD_NACOS_DISCOVERY_IP:${POD_IP:gateway}}
         register-enabled: true
         heart-beat-interval: 5000
         heart-beat-timeout: 15000
+        fail-fast: false
       config:
         enabled: false
 
