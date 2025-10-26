@@ -208,9 +208,8 @@ jobs:
             sleep 30
             
             echo "Deployment complete!"
-            sudo docker compose ps
-            EOF
-
+            sudo docker compose ps 
+          EOF
 
       - name: Cleanup SSH key
         if: always()
