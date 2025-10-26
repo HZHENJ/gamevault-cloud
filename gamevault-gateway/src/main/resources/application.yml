@@ -10,7 +10,7 @@ spring:
       discovery:
         server-addr: localhost:8848
         namespace: dev
-        group: GAMEVAULT_GROUP
+        group: ${SPRING_CLOUD_NACOS_DISCOVERY_GROUP:DEFAULT_GROUP}
       config:
         enabled: false
 
