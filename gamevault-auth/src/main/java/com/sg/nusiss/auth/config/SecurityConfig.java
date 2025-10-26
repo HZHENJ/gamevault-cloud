@@ -62,6 +62,7 @@ public class SecurityConfig {
         cfg.setAllowedOriginPatterns(List.of(
                 "http://52.77.169.8:30130",
                 "http://52.77.169.8:30132",
+                "http://52.77.169.8:3000",
                 "http://localhost:3000",
                 "http://127.0.0.1:3000"
         ));
