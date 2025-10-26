@@ -30,7 +30,8 @@ public class CorsGlobalFilter implements WebFilter, Ordered {
             "http://52.77.169.8:3000",
             "http://52.77.169.8:3001",
             "http://52.77.169.8:30130",
-            "http://52.77.169.8:30131"
+            "http://52.77.169.8:30131",
+            "http://52.77.169.8"
     );
 
     // 定义允许的请求头
