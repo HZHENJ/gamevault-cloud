@@ -85,47 +85,6 @@ spring:
             - StripPrefix=0
 
       # 全局跨域配置 - 生产环境
-      globalcors:
-        add-to-simple-url-handler-mapping: true
-        corsConfigurations:
-          '[/api/**]':
-            allowedOriginPatterns:
-              - "http://localhost:3000"
-              - "http://127.0.0.1:3000"
-              - "http://localhost:3001"
-              - "http://127.0.0.1:3001"
-              - "http://${EC2_PUBLIC_IP:52.77.169.8}:3000"
-              - "http://${EC2_PUBLIC_IP:52.77.169.8}:3001"
-              # 如果有域名，添加在这里
-              # - "https://yourdomain.com"
-            allowedMethods:
-              - GET
-              - POST
-              - PUT
-              - DELETE
-              - OPTIONS
-              - PATCH
-            allowedHeaders: "*"
-            allowCredentials: true
-            maxAge: 3600
-          '[/ws/**]':
-            allowedOriginPatterns:
-              - "http://localhost:3000"
-              - "http://127.0.0.1:3000"
-              - "http://localhost:3001"
-              - "http://127.0.0.1:3001"
-              - "http://${EC2_PUBLIC_IP:52.77.169.8}:3000"
-              - "http://${EC2_PUBLIC_IP:52.77.169.8}:3001"
-            allowedMethods:
-              - GET
-              - POST
-              - OPTIONS
-              - PATCH
-              - PUT
-              - DELETE
-            allowedHeaders: "*"
-            allowCredentials: true
-            maxAge: 3600
 
       # 网关超时配置
       httpclient:
