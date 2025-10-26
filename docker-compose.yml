@@ -148,7 +148,6 @@ services:
       - SPRING_CLOUD_NACOS_DISCOVERY_SERVER_ADDR=nacos:8848
       - SPRING_CLOUD_NACOS_DISCOVERY_NAMESPACE=prod
       - SPRING_CLOUD_NACOS_DISCOVERY_GROUP=DEFAULT_GROUP
-      - POD_IP=auth
     ports:
       - "8081:8081"
     volumes:
@@ -172,7 +171,7 @@ services:
       - SPRING_CLOUD_NACOS_DISCOVERY_SERVER_ADDR=nacos:8848
       - SPRING_CLOUD_NACOS_DISCOVERY_NAMESPACE=prod
       - SPRING_CLOUD_NACOS_DISCOVERY_GROUP=DEFAULT_GROUP
-      - POD_IP=shopping
+
     ports:
       - "8082:8082"
     restart: unless-stopped
@@ -194,7 +193,7 @@ services:
       - SPRING_CLOUD_NACOS_DISCOVERY_SERVER_ADDR=nacos:8848
       - SPRING_CLOUD_NACOS_DISCOVERY_NAMESPACE=prod
       - SPRING_CLOUD_NACOS_DISCOVERY_GROUP=DEFAULT_GROUP
-      - POD_IP=forum
+
     ports:
       - "8083:8083"
     restart: unless-stopped
@@ -220,7 +219,7 @@ services:
       - SPRING_CLOUD_NACOS_DISCOVERY_NAMESPACE=prod
       - ASSET_BASE_URL=http://${EC2_PUBLIC_IP:-localhost}:8084
       - SPRING_CLOUD_NACOS_DISCOVERY_GROUP=DEFAULT_GROUP
-      - POD_IP=developer
+
     ports:
       - "8084:8084"
     restart: unless-stopped
@@ -249,7 +248,7 @@ services:
       - MINIO_ACCESS_KEY=minioadmin
       - MINIO_SECRET_KEY=minioadmin123
       - SPRING_CLOUD_NACOS_DISCOVERY_GROUP=DEFAULT_GROUP
-      - POD_IP=social
+
     ports:
       - "8089:8089"
     restart: unless-stopped
