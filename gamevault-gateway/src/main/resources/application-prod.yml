@@ -111,9 +111,9 @@ management:
       enabled: true
   health:
     livenessState:
-      enabled: true
+      enabled: false
     readinessState:
-      enabled: true
+      enabled: false
   metrics:
     export:
       prometheus:
