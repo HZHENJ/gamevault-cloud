@@ -1,8 +1,14 @@
 server:
   port: 8089
+  # 生产环境服务器配置
   tomcat:
     max-swallow-size: 100MB
     max-http-form-post-size: 100MB
+    threads:
+      max: 200
+      min-spare: 10
+    connection-timeout: 20000
+    accept-count: 100
 
 spring:
   application:
@@ -13,49 +19,70 @@ spring:
       enabled: false
     nacos:
       discovery:
-        server-addr: ${SPRING_CLOUD_NACOS_DISCOVERY_SERVER_ADDR:nacos:8848}
-        namespace: ${SPRING_CLOUD_NACOS_DISCOVERY_NAMESPACE:prod}
+        server-addr: nacos:8848
+        namespace: prod
         group: GAMEVAULT_GROUP
-        enabled: true
+        ip: ${POD_IP:social}
         register-enabled: true
-        ip: ${POD_IP:}
+        heart-beat-interval: 5000
+        heart-beat-timeout: 15000
       config:
         enabled: false
-      import-check:
-        enabled: false
+        import-check:
+          enabled: false
 
+  # OAuth2 资源服务器 - JWT 验证
   security:
     oauth2:
       resourceserver:
         jwt:
           public-key-location: classpath:certs/rsa-public.pem
 
+  # 数据源配置 - Docker Compose 环境
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://postgres:5432/gamevault_social}
-    username: ${SPRING_DATASOURCE_USERNAME:gamevault_user}
-    password: ${SPRING_DATASOURCE_PASSWORD:gamevault_pass}
+    url: jdbc:postgresql://postgres:5432/gamevault_social
+    username: gamevault_user
+    password: gamevault_pass
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      connection-test-query: SELECT 1
 
+  # JPA 配置
   jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
       ddl-auto: update
-    naming:
-      physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+    show-sql: false
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-        show-sql: false
+        format_sql: false
+        jdbc:
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
 
+  # 文件上传配置
   servlet:
     multipart:
       max-file-size: 100MB
       max-request-size: 100MB
       enabled: true
+      file-size-threshold: 2MB
+      location: /uploads
 
+  # Redis 配置 - Docker Compose 环境
   data:
     redis:
-      host: ${SPRING_DATA_REDIS_HOST:redis}
+      host: redis
+      port: 6379
       database: 1
-      port: ${SPRING_DATA_REDIS_PORT:6379}
       timeout: 3000ms
       lettuce:
         pool:
@@ -64,13 +91,11 @@ spring:
           min-idle: 0
           max-wait: -1ms
 
-# MinIO 配置 - 生产环境（重要！）
+# MinIO 配置 - Docker Compose 环境
 minio:
-  # 内部服务间通信地址
   endpoint: http://minio:9000
-  # 外部访问地址（返回给前端的 URL）- 请替换为你的 EC2 公网 IP
-  public-endpoint: ${MINIO_PUBLIC_ENDPOINT:http://52.77.169.8:30900}
-#  public-endpoint: http://52.77.169.8:30900
+  # 公网访问地址 - 使用 EC2 公网 IP
+  public-endpoint: ${MINIO_PUBLIC_ENDPOINT:http://localhost:9000}
   access-key: ${MINIO_ACCESS_KEY:minioadmin}
   secret-key: ${MINIO_SECRET_KEY:minioadmin123}
   bucket-name: gamevault-chat
@@ -82,39 +107,39 @@ minio:
 # 文件上传配置
 file:
   upload:
-    temp-path: ${java.io.tmpdir}/gamevault-uploads
-  image:
-    max-size: 10485760
-    allowed-types: jpg,jpeg,png,gif,webp,bmp,svg
-    generate-thumbnail: true
-    thumbnail-width: 200
-    thumbnail-height: 200
-  video:
-    max-size: 524288000
-    allowed-types: mp4,avi,mov,wmv,flv,mkv,webm,m4v
-    generate-cover: true
-  document:
-    max-size: 20971520
-    allowed-types: pdf,doc,docx,xls,xlsx,ppt,pptx,txt,zip,rar,7z
-  audio:
-    max-size: 52428800
-    allowed-types: mp3,wav,aac,flac,ogg,m4a,wma
-  chunk:
-    size: 5242880
-    min-file-size: 10485760
-    task-expire-hours: 24
-  presigned:
-    upload-expire-minutes: 60
-    download-expire-hours: 24
-  quick-upload:
-    enabled: true
-  concurrent:
-    max-uploads-per-user: 5
+    temp-path: /tmp/gamevault-uploads
+    image:
+      max-size: 10485760  # 10MB
+      allowed-types: jpg,jpeg,png,gif,webp,bmp,svg
+      generate-thumbnail: true
+      thumbnail-width: 200
+      thumbnail-height: 200
+    video:
+      max-size: 524288000  # 500MB
+      allowed-types: mp4,avi,mov,wmv,flv,mkv,webm,m4v
+      generate-cover: true
+    document:
+      max-size: 20971520  # 20MB
+      allowed-types: pdf,doc,docx,xls,xlsx,ppt,pptx,txt,zip,rar,7z
+    audio:
+      max-size: 52428800  # 50MB
+      allowed-types: mp3,wav,aac,flac,ogg,m4a,wma
+    chunk:
+      size: 5242880  # 5MB
+      min-file-size: 10485760  # 10MB
+      task-expire-hours: 24
+    presigned:
+      upload-expire-minutes: 60
+      download-expire-hours: 24
+    quick-upload:
+      enabled: true
+    concurrent:
+      max-uploads-per-user: 5
 
 # 应用配置
 app:
   upload:
-    path: uploads
+    path: /uploads
     max-file-size: 100MB
     max-request-size: 100MB
   pagination:
@@ -126,20 +151,38 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics
+        include: health,info,metrics,prometheus
+      base-path: /actuator
   endpoint:
     health:
       show-details: when-authorized
+      probes:
+        enabled: true
+  health:
+    livenessState:
+      enabled: true
+    readinessState:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
 
-# 日志配置 - 生产环境
+# 日志配置
 logging:
   level:
+    root: INFO
     com.sg.nusiss.social: INFO
     org.springframework.web: INFO
     org.springframework.messaging: INFO
+    org.springframework.security: INFO
+    org.hibernate.SQL: WARN
+    org.hibernate.type.descriptor.sql.BasicBinder: WARN
   pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
   file:
-    name: /app/logs/gamevault-social.log
-#    max-size: 10MB
-#    max-history: 30
+    name: /app/logs/social-service.log
+    max-size: 100MB
+    max-history: 30
+    total-size-cap: 1GB

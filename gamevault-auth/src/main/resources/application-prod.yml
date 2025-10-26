@@ -1,53 +1,73 @@
 server:
   port: 8081
+  # 生产环境服务器配置
+  tomcat:
+    threads:
+      max: 200
+      min-spare: 10
+    connection-timeout: 20000
+    accept-count: 100
 
 spring:
   application:
     name: gamevault-auth
 
-  web:
-    resources:
-      static-locations: file:/uploads/,classpath:/static/
-
-  # 数据源配置 - 生产环境从环境变量读取
+  # 数据源配置 - Docker Compose 环境
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://postgres:5432/gamevault_auth}
-    username: ${SPRING_DATASOURCE_USERNAME:gamevault_user}
-    password: ${SPRING_DATASOURCE_PASSWORD:gamevault_pass}
+    url: jdbc:postgresql://postgres:5432/gamevault_auth
+    username: gamevault_user
+    password: gamevault_pass
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 10
       minimum-idle: 5
       connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      connection-test-query: SELECT 1
 
   # JPA 配置
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
       ddl-auto: update
-    show-sql: false  # 生产环境关闭 SQL 日志
+    show-sql: false
     properties:
       hibernate:
         format_sql: false
+        jdbc:
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
 
-  # Nacos 注册中心 - 生产环境
+  # 文件上传配置
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB
+      max-request-size: 50MB
+      file-size-threshold: 2MB
+      location: /uploads
+
+  # Nacos 注册中心配置
   cloud:
     nacos:
       discovery:
-        server-addr: ${SPRING_CLOUD_NACOS_DISCOVERY_SERVER_ADDR:nacos:8848}
-        namespace: ${SPRING_CLOUD_NACOS_DISCOVERY_NAMESPACE:prod}
+        server-addr: nacos:8848
+        namespace: prod
         group: GAMEVAULT_GROUP
-        enabled: true
+        ip: ${POD_IP:auth}
         register-enabled: true
-        ip: ${POD_IP:}
+        heart-beat-interval: 5000
+        heart-beat-timeout: 15000
       config:
-        server-addr: ${SPRING_CLOUD_NACOS_CONFIG_SERVER_ADDR:nacos:8848}
-        namespace: ${SPRING_CLOUD_NACOS_CONFIG_NAMESPACE:prod}
+        server-addr: nacos:8848
+        namespace: prod
         group: GAMEVAULT_GROUP
         file-extension: yml
         enabled: false
-      import-check:
-        enabled: false
+        import-check:
+          enabled: false
 
 # RSA 密钥配置
 rsa:
@@ -64,19 +84,37 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics
+        include: health,info,metrics,prometheus
+      base-path: /actuator
   endpoint:
     health:
       show-details: when-authorized
+      probes:
+        enabled: true
+  health:
+    livenessState:
+      enabled: true
+    readinessState:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
 
-# 日志配置 - 生产环境
+# 日志配置
 logging:
   level:
+    root: INFO
     com.sg.nusiss.auth: INFO
     org.springframework.security: INFO
+    org.springframework.web: INFO
+    org.hibernate.SQL: WARN
+    org.hibernate.type.descriptor.sql.BasicBinder: WARN
   pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
   file:
-    name: /app/logs/gamevault-auth.log
-    max-size: 10MB
+    name: /app/logs/auth-service.log
+    max-size: 100MB
     max-history: 30
+    total-size-cap: 1GB

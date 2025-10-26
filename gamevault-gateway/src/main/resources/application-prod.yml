@@ -1,5 +1,9 @@
 server:
-  port: 8080
+  port: 8080  # 前端统一入口
+  # 生产环境服务器配置
+  netty:
+    connection-timeout: 30s
+    idle-timeout: 60s
 
 spring:
   application:
@@ -8,16 +12,18 @@ spring:
   cloud:
     nacos:
       discovery:
-        server-addr: ${SPRING_CLOUD_NACOS_DISCOVERY_SERVER_ADDR:nacos:8848}
-        namespace: ${SPRING_CLOUD_NACOS_DISCOVERY_NAMESPACE:prod}
+        server-addr: nacos:8848
+        namespace: prod
         group: GAMEVAULT_GROUP
-        enabled: true
+        ip: ${POD_IP:gateway}
         register-enabled: true
-        ip: ${POD_IP:}
+        heart-beat-interval: 5000
+        heart-beat-timeout: 15000
       config:
         enabled: false
-      import-check:
-        enabled: false
+
+    import-check:
+      enabled: false
 
     gateway:
       # 路由配置 - 保持前端接口完全不变
@@ -26,7 +32,7 @@ spring:
         - id: auth-service
           uri: lb://gamevault-auth
           predicates:
-            - Path=/api/auth/**,/.well-known/jwks.json,/api/settings/**,/uploads/**
+            - Path=/api/auth/**, /.well-known/jwks.json, /api/settings/**
           filters:
             - StripPrefix=0
 
@@ -38,6 +44,7 @@ spring:
           filters:
             - StripPrefix=0
 
+        # ==================== Developer 服务 ====================
         - id: developer-service
           uri: lb://gamevault-developer
           predicates:
@@ -77,24 +84,94 @@ spring:
           filters:
             - StripPrefix=0
 
+      # 全局跨域配置 - 生产环境
+      globalcors:
+        add-to-simple-url-handler-mapping: true
+        corsConfigurations:
+          '[/api/**]':
+            allowedOriginPatterns:
+              - "http://localhost:3000"
+              - "http://127.0.0.1:3000"
+              - "http://localhost:3001"
+              - "http://127.0.0.1:3001"
+              - "http://${EC2_PUBLIC_IP:52.77.169.8}:3000"
+              - "http://${EC2_PUBLIC_IP:52.77.169.8}:3001"
+              # 如果有域名，添加在这里
+              # - "https://yourdomain.com"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+              - PATCH
+            allowedHeaders: "*"
+            allowCredentials: true
+            maxAge: 3600
+          '[/ws/**]':
+            allowedOriginPatterns:
+              - "http://localhost:3000"
+              - "http://127.0.0.1:3000"
+              - "http://localhost:3001"
+              - "http://127.0.0.1:3001"
+              - "http://${EC2_PUBLIC_IP:52.77.169.8}:30130"
+              - "http://${EC2_PUBLIC_IP:52.77.169.8}:30131"
+            allowedMethods:
+              - GET
+              - POST
+              - OPTIONS
+              - PATCH
+              - PUT
+              - DELETE
+            allowedHeaders: "*"
+            allowCredentials: true
+            maxAge: 3600
 
-# Actuator
+      # 网关超时配置
+      httpclient:
+        connect-timeout: 10000
+        response-timeout: 30s
+        pool:
+          type: elastic
+          max-connections: 100
+          max-idle-time: 30s
+
+# Actuator 配置
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,gateway,routes,metrics
+        include: health,info,gateway,routes,metrics,prometheus
+      base-path: /actuator
   endpoint:
     health:
       show-details: when-authorized
+      probes:
+        enabled: true
+    gateway:
+      enabled: true
+  health:
+    livenessState:
+      enabled: true
+    readinessState:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
 
-# 日志 - 生产环境
+# 日志配置
 logging:
   level:
+    root: INFO
     org.springframework.cloud.gateway: INFO
+    org.springframework.web: INFO
+    reactor.netty: INFO
   pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
   file:
-    name: /app/logs/gamevault-gateway.log
-#    max-size: 10MB
-#    max-history: 30
+    name: /app/logs/gateway-service.log
+    max-size: 100MB
+    max-history: 30
+    total-size-cap: 1GB

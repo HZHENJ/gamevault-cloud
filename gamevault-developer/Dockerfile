@@ -47,19 +47,15 @@
 ## 启动应用
 #ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
 
-
 # ==========================================
-# Dockerfile for Forum Service
+# Dockerfile for Developer Service
 # ==========================================
 
 FROM eclipse-temurin:17-jre-alpine
 
 # 设置时区为新加坡时间
 ENV TZ=Asia/Singapore
-RUN apk add --no-cache tzdata curl && \
-    cp /usr/share/zoneinfo/Asia/Singapore /etc/localtime && \
-    echo "Asia/Singapore" > /etc/timezone && \
-    apk del tzdata
+RUN apk add --no-cache tzdata curl
 
 # 设置工作目录
 WORKDIR /app
@@ -68,19 +64,16 @@ WORKDIR /app
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
 # 复制 JAR 文件 (CI 已经构建好)
-COPY target/*.jar app.jar
-
-# 修改文件所有权
-RUN chown -R appuser:appgroup /app
+COPY --chown=appuser:appgroup target/*.jar app.jar
 
 # 切换到应用用户
 USER appuser
 
 # 暴露端口
-EXPOSE 8083
+EXPOSE 8084
 
 # JVM 参数优化
-ENV JAVA_OPTS="-Xms512m -Xmx1024m -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -Djava.security.egd=file:/dev/./urandom"
+ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -Djava.security.egd=file:/dev/./urandom"
 
 # 启动应用
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
+ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar app.jar"]

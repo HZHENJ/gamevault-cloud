@@ -1,5 +1,12 @@
 server:
   port: 8082
+  # 生产环境服务器配置
+  tomcat:
+    threads:
+      max: 200
+      min-spare: 10
+    connection-timeout: 20000
+    accept-count: 100
 
 spring:
   application:
@@ -10,35 +17,39 @@ spring:
       enabled: false
     nacos:
       discovery:
-        server-addr: ${SPRING_CLOUD_NACOS_DISCOVERY_SERVER_ADDR:nacos:8848}
-        namespace: ${SPRING_CLOUD_NACOS_DISCOVERY_NAMESPACE:prod}
+        server-addr: nacos:8848
+        namespace: prod
         group: GAMEVAULT_GROUP
-        enabled: true
+        ip: ${POD_IP:shopping}
         register-enabled: true
-        ip: ${POD_IP:}
+        heart-beat-interval: 5000
+        heart-beat-timeout: 15000
       config:
         enabled: false
-      import-check:
-        enabled: false
+        import-check:
+          enabled: false
 
   # OAuth2 资源服务器 - JWT 验证
   security:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: http://gamevault-auth:8081
-          jwk-set-uri: http://gamevault-auth:8081/.well-known/jwks.json
+          issuer-uri: http://auth:8081
+          jwk-set-uri: http://auth:8081/.well-known/jwks.json
 
-  # 数据源配置
+  # 数据源配置 - Docker Compose 环境
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://postgres:5432/gamevault_shopping}
-    username: ${SPRING_DATASOURCE_USERNAME:gamevault_user}
-    password: ${SPRING_DATASOURCE_PASSWORD:gamevault_pass}
+    url: jdbc:postgresql://postgres:5432/gamevault_shopping
+    username: gamevault_user
+    password: gamevault_pass
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 10
       minimum-idle: 5
       connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      connection-test-query: SELECT 1
 
   # JPA 配置
   jpa:
@@ -49,6 +60,10 @@ spring:
     properties:
       hibernate:
         format_sql: false
+        jdbc:
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
 
   # 文件上传配置
   servlet:
@@ -56,6 +71,8 @@ spring:
       max-file-size: 100MB
       max-request-size: 100MB
       enabled: true
+      file-size-threshold: 2MB
+      location: /uploads
 
 # 激活码库存配置
 activation:
@@ -65,7 +82,7 @@ activation:
 # 应用配置
 app:
   upload:
-    path: uploads
+    path: /uploads
     max-file-size: 100MB
     max-request-size: 100MB
   pagination:
@@ -77,17 +94,37 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics
+        include: health,info,metrics,prometheus
+      base-path: /actuator
   endpoint:
     health:
       show-details: when-authorized
+      probes:
+        enabled: true
+  health:
+    livenessState:
+      enabled: true
+    readinessState:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
 
 # 日志配置
 logging:
   level:
+    root: INFO
     com.sg.nusiss.shopping: INFO
     org.springframework.web: INFO
+    org.springframework.security: INFO
+    org.hibernate.SQL: WARN
+    org.hibernate.type.descriptor.sql.BasicBinder: WARN
   pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
   file:
-    name: /app/logs/gamevault-shopping.log
+    name: /app/logs/shopping-service.log
+    max-size: 100MB
+    max-history: 30
+    total-size-cap: 1GB
