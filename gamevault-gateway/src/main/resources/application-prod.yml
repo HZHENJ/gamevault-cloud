@@ -106,7 +106,7 @@ management:
     health:
       show-details: when-authorized
       probes:
-        enabled: true
+        enabled: false
     gateway:
       enabled: true
   health:
