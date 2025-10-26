@@ -72,7 +72,7 @@ spring:
       max-request-size: 100MB
       enabled: true
       file-size-threshold: 2MB
-      location: /uploads
+      location: /tmp  # 临时文件目录
 
 # 激活码库存配置
 activation:

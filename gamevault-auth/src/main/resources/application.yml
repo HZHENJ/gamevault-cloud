@@ -53,6 +53,8 @@ rsa:
 app:
   jwt:
     expiration-minutes: 120
+  upload:
+    path: uploads  # 开发环境：相对路径
 
 # Actuator 配置
 management:

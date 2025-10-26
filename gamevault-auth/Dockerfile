@@ -40,11 +40,12 @@ WORKDIR /app
 # 创建应用用户和组
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
-# 创建上传文件目录
-RUN mkdir -p /app/uploads && chown -R appuser:appgroup /app/uploads
+# 创建上传文件目录（与docker-compose挂载路径一致）
+RUN mkdir -p /uploads /uploads/avatars /uploads/games && \
+    chown -R appuser:appgroup /uploads
 
 # 挂载点
-VOLUME /app/uploads
+VOLUME /uploads
 
 # 复制 JAR 文件 (CI 已经构建好)
 # 注意: Docker build context 在服务目录内,所以直接用 target/

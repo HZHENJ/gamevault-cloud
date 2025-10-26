@@ -201,11 +201,17 @@ jobs:
             echo "Stopping old containers..."
             sudo docker compose down
             
-            echo "Starting services..."
-            sudo docker compose up -d
+            echo "Starting infrastructure services..."
+            sudo docker compose up -d postgres redis nacos minio minio-init
             
-            echo "Waiting for services..."
-            sleep 30
+            echo "Waiting for infrastructure to be ready..."
+            sleep 45
+            
+            echo "Starting application services..."
+            sudo docker compose up -d gateway auth shopping forum developer social
+            
+            echo "Waiting for services to start..."
+            sleep 20
             
             echo "Deployment complete!"
             sudo docker compose ps 

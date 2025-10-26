@@ -47,7 +47,7 @@ spring:
       max-file-size: 10MB
       max-request-size: 50MB
       file-size-threshold: 2MB
-      location: /uploads
+      location: /tmp  # 临时文件目录，处理上传时使用
 
   # Nacos 注册中心配置
   cloud:
@@ -79,6 +79,8 @@ rsa:
 app:
   jwt:
     expiration-minutes: 120
+  upload:
+    path: /uploads  # 文件最终存储目录
 
 # Actuator 配置
 management:

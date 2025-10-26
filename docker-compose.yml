@@ -171,9 +171,10 @@ services:
       - SPRING_CLOUD_NACOS_DISCOVERY_SERVER_ADDR=nacos:8848
       - SPRING_CLOUD_NACOS_DISCOVERY_NAMESPACE=prod
       - SPRING_CLOUD_NACOS_DISCOVERY_GROUP=DEFAULT_GROUP
-
     ports:
       - "8082:8082"
+    volumes:
+      - ./docker/shopping-uploads:/uploads
     restart: unless-stopped
     networks:
       - gamevault

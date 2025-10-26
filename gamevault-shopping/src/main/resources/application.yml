@@ -60,6 +60,7 @@ spring:
       max-file-size: 100MB
       max-request-size: 100MB
       enabled: true
+      location: /tmp  # 临时文件目录
 
 # 激活码库存配置
 activation:

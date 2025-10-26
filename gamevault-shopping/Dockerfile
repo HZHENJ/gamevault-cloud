@@ -29,6 +29,13 @@ WORKDIR /app
 # 创建应用用户和组
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
+# 创建上传文件目录
+RUN mkdir -p /uploads /uploads/games && \
+    chown -R appuser:appgroup /uploads
+
+# 挂载点
+VOLUME /uploads
+
 # 复制 JAR 文件 (CI 已经构建好)
 COPY target/*.jar app.jar
 
