@@ -46,6 +46,13 @@ spring:
             - StripPrefix=0
 
         # ==================== Developer 服务 ====================
+        - id: developer-assets
+          uri: lb://gamevault-developer
+          predicates:
+            - Path=/assets/**
+          filters:
+            - StripPrefix=0
+
         - id: developer-service
           uri: lb://gamevault-developer
           predicates:
