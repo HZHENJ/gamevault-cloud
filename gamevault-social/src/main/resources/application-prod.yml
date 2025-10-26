@@ -22,7 +22,7 @@ spring:
         server-addr: nacos:8848
         namespace: prod
         group: ${SPRING_CLOUD_NACOS_DISCOVERY_GROUP:DEFAULT_GROUP}
-        ip: ${POD_IP:social}
+
         register-enabled: true
         heart-beat-interval: 5000
         heart-beat-timeout: 15000
