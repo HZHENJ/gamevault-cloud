@@ -12,7 +12,7 @@ spring:
       discovery:
         server-addr: localhost:8848
         namespace: dev
-        group: GAMEVAULT_GROUP
+        group: DEFAULT_GROUP
       config:
         enabled: false
         import-check:
