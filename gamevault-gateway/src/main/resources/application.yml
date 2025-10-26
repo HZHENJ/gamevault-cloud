@@ -11,6 +11,7 @@ spring:
         server-addr: localhost:8848
         namespace: dev
         group: ${SPRING_CLOUD_NACOS_DISCOVERY_GROUP:DEFAULT_GROUP}
+        ip: ${SPRING_CLOUD_NACOS_DISCOVERY_IP:}
       config:
         enabled: false
 

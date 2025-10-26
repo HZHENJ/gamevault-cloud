@@ -11,6 +11,7 @@ spring:
         server-addr: localhost:8848
         namespace: dev
         group: DEFAULT_GROUP
+        ip: ${SPRING_CLOUD_NACOS_DISCOVERY_IP:}
       config:
         enabled: false
         import-check:
@@ -23,17 +24,6 @@ spring:
     driver-class-name: org.postgresql.Driver
 
   data:
-#    redis:
-#      host: localhost
-#      database: 1
-#      port: 12003
-#      timeout: 3000ms
-#      lettuce:
-#        pool:
-#          max-active: 8
-#          max-idle: 8
-#          min-idle: 0
-#          max-wait: -1ms
 
   servlet:
     multipart:

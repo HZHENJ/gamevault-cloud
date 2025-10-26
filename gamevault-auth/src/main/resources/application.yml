@@ -33,6 +33,7 @@ spring:
         server-addr: localhost:8848
         namespace: dev
         group: DEFAULT_GROUP
+        ip: ${SPRING_CLOUD_NACOS_DISCOVERY_IP:}
       config:
         server-addr: localhost:8848
         namespace: dev
