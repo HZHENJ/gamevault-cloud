@@ -245,7 +245,7 @@ jobs:
             # 清理构建缓存
             sudo docker builder prune -af --filter "until=24h"
           
-            # 显示结果
+            
             echo "Cleanup done. Current usage:"
             sudo docker system df
           EOF
